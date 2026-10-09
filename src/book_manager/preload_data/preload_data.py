@@ -1,177 +1,117 @@
+"""Carga inicial de datos desde los archivos CSV de migrations/csv."""
 import csv
-from datetime import datetime
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any
 
 from book_manager.entities.entities import (
-    Genero,
-    Editorial,
-    Moneda,
-    TipoCotizacion,
     CotizacionDolar,
+    Editorial,
+    Genero,
     Libro,
+    Moneda,
     Precio,
-    Stock
+    Stock,
+    TipoCotizacion,
 )
+from book_manager.repositories.repositories import IRepositorio
+
+CARPETA_CSV: Path = Path(__file__).resolve().parent.parent / 'migrations' / 'csv'
+
+
+def _leer_csv(nombre_archivo: str) -> list[dict[str, str]]:
+    """Lee un CSV de la carpeta de migraciones y devuelve sus filas como diccionarios."""
+    with open(CARPETA_CSV / nombre_archivo, 'r', encoding='utf-8', newline='') as archivo:
+        return list(csv.DictReader(archivo))
+
+
+def _a_fecha(texto: str) -> date:
+    """Convierte un texto con formato AAAA-MM-DD en un objeto date."""
+    return datetime.strptime(texto, '%Y-%m-%d').date()
+
+
+def _buscar(repositorio: IRepositorio, id_entidad: int, descripcion: str) -> Any:
+    """Busca una entidad por id y falla con un mensaje claro si no existe."""
+    entidad = repositorio.leer_por_id(id_entidad)
+    if entidad is None:
+        raise ValueError(f'No existe {descripcion} con id {id_entidad}')
+    return entidad
 
 
 def cargar_datos(
-    repo_generos,
-    repo_editoriales,
-    repo_monedas,
-    repo_tipos_cotizacion,
-    repo_libros,
-    repo_precios,
-    repo_stock,
-    repo_cotizaciones
-):
+    repo_generos: IRepositorio,
+    repo_editoriales: IRepositorio,
+    repo_monedas: IRepositorio,
+    repo_tipos_cotizacion: IRepositorio,
+    repo_libros: IRepositorio,
+    repo_precios: IRepositorio,
+    repo_stock: Any,
+    repo_cotizaciones: Any,
+) -> None:
+    """Lee los CSV de migrations/csv y crea las entidades en cada repositorio.
 
-    carpeta = "book_manager/migrations/csv/"
+    Se cargan primero las entidades independientes y después las que dependen
+    de ellas (libros, precios, stock y cotizaciones).
+    """
+    for fila in _leer_csv('generos.csv'):
+        repo_generos.crear(Genero(id=int(fila['id']), nombre=fila['nombre']))
 
-    generos = {}
-    editoriales = {}
-    monedas = {}
-    tipos_cotizacion = {}
+    for fila in _leer_csv('editoriales.csv'):
+        repo_editoriales.crear(
+            Editorial(id=int(fila['id']), nombre=fila['nombre'], sede=fila['sede'])
+        )
 
-    # -----------------------------
-    # DATOS BASE
-    # -----------------------------
+    for fila in _leer_csv('monedas.csv'):
+        repo_monedas.crear(
+            Moneda(id=int(fila['id']), codigo=fila['codigo'], nombre=fila['nombre'])
+        )
 
-    with open(carpeta + "datos_base.csv", "r", encoding="utf-8") as archivo:
-        lector = csv.DictReader(archivo)
+    for fila in _leer_csv('tipos_cotizacion.csv'):
+        repo_tipos_cotizacion.crear(
+            TipoCotizacion(id=int(fila['id']), nombre=fila['nombre'])
+        )
 
-        id_genero = 1
-        id_editorial = 1
-        id_moneda = 1
-        id_tipo = 1
-
-        for fila in lector:
-
-            if fila["tipo"] == "genero":
-
-                genero = Genero(
-                    id=id_genero,
-                    nombre=fila["nombre"]
-                )
-
-                repo_generos.crear(genero)
-                generos[fila["nombre"]] = genero
-                id_genero += 1
-
-            elif fila["tipo"] == "editorial":
-
-                editorial = Editorial(
-                    id=id_editorial,
-                    nombre=fila["nombre"],
-                    sede=fila["sede"]
-                )
-
-                repo_editoriales.crear(editorial)
-                editoriales[fila["nombre"]] = editorial
-                id_editorial += 1
-
-            elif fila["tipo"] == "moneda":
-
-                moneda = Moneda(
-                    id=id_moneda,
-                    codigo=fila["codigo"],
-                    nombre=fila["nombre"]
-                )
-
-                repo_monedas.crear(moneda)
-                monedas[fila["codigo"]] = moneda
-                id_moneda += 1
-
-            elif fila["tipo"] == "tipo_cotizacion":
-
-                tipo = TipoCotizacion(
-                    id=id_tipo,
-                    nombre=fila["nombre"]
-                )
-
-                repo_tipos_cotizacion.crear(tipo)
-                tipos_cotizacion[fila["nombre"]] = tipo
-                id_tipo += 1
-
-    # -----------------------------
-    # LIBROS, PRECIOS Y STOCK
-    # -----------------------------
-
-    with open(carpeta + "libros.csv", "r", encoding="utf-8") as archivo:
-        lector = csv.DictReader(archivo)
-
-        id_libro = 1
-        id_precio = 1
-        id_stock = 1
-
-        for fila in lector:
-
-            genero = generos[fila["genero"]]
-            editorial = editoriales[fila["editorial"]]
-            moneda = monedas[fila["moneda"]]
-
-            libro = Libro(
-                id=id_libro,
-                isbn=fila["isbn"],
-                titulo=fila["titulo"],
-                autor=fila["autor"],
-                genero=genero,
-                editorial=editorial
+    for fila in _leer_csv('libros.csv'):
+        repo_libros.crear(
+            Libro(
+                id=int(fila['id']),
+                isbn=fila['isbn'],
+                titulo=fila['titulo'],
+                autor=fila['autor'],
+                genero=_buscar(repo_generos, int(fila['genero_id']), 'género'),
+                editorial=_buscar(repo_editoriales, int(fila['editorial_id']), 'editorial'),
             )
+        )
 
-            repo_libros.crear(libro)
-
-            fecha = datetime.strptime(
-                fila["fecha_vigencia"],
-                "%Y-%m-%d"
-            ).date()
-
-            precio = Precio(
-                id=id_precio,
-                libro=libro,
-                moneda=moneda,
-                monto=float(fila["precio"]),
-                fecha_vigencia=fecha
+    for fila in _leer_csv('precios.csv'):
+        repo_precios.crear(
+            Precio(
+                id=int(fila['id']),
+                libro=_buscar(repo_libros, int(fila['libro_id']), 'libro'),
+                moneda=_buscar(repo_monedas, int(fila['moneda_id']), 'moneda'),
+                monto=float(fila['monto']),
+                fecha_vigencia=_a_fecha(fila['fecha_vigencia']),
             )
+        )
 
-            repo_precios.crear(precio)
-
-            stock = Stock(
-                id=id_stock,
-                libro=libro,
-                cantidad=int(fila["stock"])
+    for fila in _leer_csv('stock.csv'):
+        repo_stock.crear(
+            Stock(
+                id=int(fila['id']),
+                libro=_buscar(repo_libros, int(fila['libro_id']), 'libro'),
+                cantidad=int(fila['cantidad']),
             )
+        )
 
-            repo_stock.crear(stock)
-
-            id_libro += 1
-            id_precio += 1
-            id_stock += 1
-
-    # -----------------------------
-    # COTIZACIONES
-    # -----------------------------
-
-    with open(carpeta + "cotizaciones.csv", "r", encoding="utf-8") as archivo:
-        lector = csv.DictReader(archivo)
-
-        id_cotizacion = 1
-
-        for fila in lector:
-
-            tipo = tipos_cotizacion[fila["tipo"]]
-
-            fecha = datetime.strptime(
-                fila["fecha"],
-                "%Y-%m-%d"
-            ).date()
-
-            cotizacion = CotizacionDolar(
-                id=id_cotizacion,
-                tipo_cotizacion=tipo,
-                fecha=fecha,
-                valor_compra=float(fila["valor_compra"]),
-                valor_venta=float(fila["valor_venta"])
+    for fila in _leer_csv('cotizaciones.csv'):
+        repo_cotizaciones.crear(
+            CotizacionDolar(
+                id=int(fila['id']),
+                tipo_cotizacion=_buscar(
+                    repo_tipos_cotizacion, int(fila['tipo_cotizacion_id']), 'tipo de cotización'
+                ),
+                fecha=_a_fecha(fila['fecha']),
+                valor_compra=float(fila['valor_compra']),
+                valor_venta=float(fila['valor_venta']),
             )
-
-            repo_cotizaciones.crear(cotizacion)
-
-            id_cotizacion += 1
+        )

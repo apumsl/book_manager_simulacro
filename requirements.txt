@@ -1,2 +1,1 @@
-requests
-beautifulsoup4
+# Sin dependencias externas: este sprint usa solo la biblioteca estándar de Python.

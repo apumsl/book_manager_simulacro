@@ -1,11 +1,14 @@
 # Changelog
+## [Ejercicio 1]
+- Corrección: `requirements.txt` ya no lista `requests` ni `beautifulsoup4`, porque el sprint no usa librerías externas.
+- Corrección: se normaliza el formato del encabezado `[Ejercicio 7 ]` a `[Ejercicio 7]`.
 
 ## [Ejercicio 5]
 - Corrección: se separan los datos en un CSV por entidad (generos, editoriales, monedas, tipos_cotizacion, libros, precios, stock, cotizaciones), con id propio y claves foráneas por id.
 - Corrección: se elimina `datos_base.csv`, que mezclaba cuatro entidades, y `libros.csv` deja de incluir precio y stock.
 - Corrección: `preload_data.py` lee los nuevos CSV, resuelve la ruta desde la ubicación del archivo y relaciona las entidades por id.
 
-## [Ejercicio 7 ]
+## [Ejercicio 7]
 - Creación del archivo `main.py` como punto de entrada del sistema.
 - Inicialización de `ConsolaUI` y ejecución del menú principal.
 

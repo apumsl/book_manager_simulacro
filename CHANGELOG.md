@@ -1,4 +1,10 @@
 # Changelog
+
+## [Ejercicio 2]
+- Corrección: se agregan setters con validación en `Moneda` (código y nombre) y `TipoCotizacion` (nombre).
+- Corrección: formato PEP8 en `entities.py` (espacios, líneas en blanco entre clases, líneas de hasta 79 caracteres) y docstring del módulo al comienzo del archivo.
+- Corrección: typos en docstrings y en los `__str__` de las entidades, y eliminación de comentarios fuera de funciones, clases y métodos.
+
 ## [Ejercicio 1]
 - Corrección: `requirements.txt` ya no lista `requests` ni `beautifulsoup4`, porque el sprint no usa librerías externas.
 - Corrección: se normaliza el formato del encabezado `[Ejercicio 7 ]` a `[Ejercicio 7]`.

@@ -1,5 +1,10 @@
 # Changelog
 
+## [Ejercicio 3]
+- Corrección: se corrige el nombre de la interfaz `IRepositorioStock` y los parámetros mal escritos (`entidad`, `cotizacion`) en las interfaces de los repositorios.
+- Corrección: docstrings con formato `Args`, `Returns` y `Raises`, typos corregidos, comentarios fuera de lugar eliminados y formato PEP8 en `repositories.py`.
+- Corrección: `preload_data.py` usa las interfaces de los repositorios como tipos y cumple PEP8.
+
 ## [Ejercicio 2]
 - Corrección: se agregan setters con validación en `Moneda` (código y nombre) y `TipoCotizacion` (nombre).
 - Corrección: formato PEP8 en `entities.py` (espacios, líneas en blanco entre clases, líneas de hasta 79 caracteres) y docstring del módulo al comienzo del archivo.

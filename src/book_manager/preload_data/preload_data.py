@@ -14,14 +14,20 @@ from book_manager.entities.entities import (
     Stock,
     TipoCotizacion,
 )
-from book_manager.repositories.repositories import IRepositorio
+from book_manager.repositories.repositories import (
+    IRepositorio,
+    IRepositorioCotizacionDolar,
+    IRepositorioStock,
+)
 
-CARPETA_CSV: Path = Path(__file__).resolve().parent.parent / 'migrations' / 'csv'
+CARPETA_CSV: Path = (
+    Path(__file__).resolve().parent.parent / 'migrations' / 'csv')
 
 
 def _leer_csv(nombre_archivo: str) -> list[dict[str, str]]:
-    """Lee un CSV de la carpeta de migraciones y devuelve sus filas como diccionarios."""
-    with open(CARPETA_CSV / nombre_archivo, 'r', encoding='utf-8', newline='') as archivo:
+    """Lee un CSV de migraciones/csv y devuelve sus filas como diccionarios."""
+    ruta = CARPETA_CSV / nombre_archivo
+    with open(ruta, 'r', encoding='utf-8', newline='') as archivo:
         return list(csv.DictReader(archivo))
 
 
@@ -30,7 +36,8 @@ def _a_fecha(texto: str) -> date:
     return datetime.strptime(texto, '%Y-%m-%d').date()
 
 
-def _buscar(repositorio: IRepositorio, id_entidad: int, descripcion: str) -> Any:
+def _buscar(repositorio: IRepositorio, id_entidad: int,
+            descripcion: str) -> Any:
     """Busca una entidad por id y falla con un mensaje claro si no existe."""
     entidad = repositorio.leer_por_id(id_entidad)
     if entidad is None:
@@ -45,8 +52,8 @@ def cargar_datos(
     repo_tipos_cotizacion: IRepositorio,
     repo_libros: IRepositorio,
     repo_precios: IRepositorio,
-    repo_stock: Any,
-    repo_cotizaciones: Any,
+    repo_stock: IRepositorioStock,
+    repo_cotizaciones: IRepositorioCotizacionDolar,
 ) -> None:
     """Lee los CSV de migrations/csv y crea las entidades en cada repositorio.
 
@@ -58,12 +65,14 @@ def cargar_datos(
 
     for fila in _leer_csv('editoriales.csv'):
         repo_editoriales.crear(
-            Editorial(id=int(fila['id']), nombre=fila['nombre'], sede=fila['sede'])
+            Editorial(id=int(fila['id']), nombre=fila['nombre'],
+                      sede=fila['sede'])
         )
 
     for fila in _leer_csv('monedas.csv'):
         repo_monedas.crear(
-            Moneda(id=int(fila['id']), codigo=fila['codigo'], nombre=fila['nombre'])
+            Moneda(id=int(fila['id']), codigo=fila['codigo'],
+                   nombre=fila['nombre'])
         )
 
     for fila in _leer_csv('tipos_cotizacion.csv'):
@@ -79,7 +88,8 @@ def cargar_datos(
                 titulo=fila['titulo'],
                 autor=fila['autor'],
                 genero=_buscar(repo_generos, int(fila['genero_id']), 'género'),
-                editorial=_buscar(repo_editoriales, int(fila['editorial_id']), 'editorial'),
+                editorial=_buscar(
+                    repo_editoriales, int(fila['editorial_id']), 'editorial'),
             )
         )
 
@@ -108,7 +118,9 @@ def cargar_datos(
             CotizacionDolar(
                 id=int(fila['id']),
                 tipo_cotizacion=_buscar(
-                    repo_tipos_cotizacion, int(fila['tipo_cotizacion_id']), 'tipo de cotización'
+                    repo_tipos_cotizacion,
+                    int(fila['tipo_cotizacion_id']),
+                    'tipo de cotización'
                 ),
                 fecha=_a_fecha(fila['fecha']),
                 valor_compra=float(fila['valor_compra']),

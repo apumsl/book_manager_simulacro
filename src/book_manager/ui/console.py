@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, datetime
+from typing import Optional
 
 from book_manager.entities.entities import (
     CotizacionDolar, Editorial, Genero, Libro, Moneda, Precio, Stock,
@@ -29,7 +30,72 @@ class ConsolaUI:
         self.svc_precios = svc_precios
         self.svc_cotizaciones = svc_cotizaciones
 
-    def iniciar(self):
+    def _pedir_entero(self, mensaje: str) -> Optional[int]:
+        """Pide un número entero por consola.
+
+        Returns:
+            El número ingresado, o None (con aviso) si no es un entero.
+        """
+        try:
+            return int(input(mensaje))
+        except ValueError:
+            print("Error: Debe ingresar un número entero.")
+            return None
+
+    def _pedir_entero_o_actual(self, mensaje: str,
+                               actual: int) -> Optional[int]:
+        """Pide un entero; si se deja vacío, devuelve el valor actual.
+
+        Returns:
+            El número ingresado, el valor actual si no se escribió nada,
+            o None (con aviso) si lo escrito no es un entero.
+        """
+        texto = input(mensaje)
+        if texto == "":
+            return actual
+        try:
+            return int(texto)
+        except ValueError:
+            print("Error: Debe ingresar un número entero.")
+            return None
+
+    def _pedir_decimal(self, mensaje: str,
+                       actual: Optional[float] = None) -> Optional[float]:
+        """Pide un número decimal por consola.
+
+        Si se deja vacío y hay valor actual, devuelve el valor actual.
+
+        Returns:
+            El número, el valor actual, o None (con aviso) si no es válido.
+        """
+        texto = input(mensaje)
+        if texto == "" and actual is not None:
+            return actual
+        try:
+            return float(texto)
+        except ValueError:
+            print("Error: Debe ingresar un número (use punto: 1500.50).")
+            return None
+
+    def _pedir_fecha(self, mensaje: str,
+                     actual: Optional[date] = None) -> Optional[date]:
+        """Pide una fecha con formato AAAA-MM-DD.
+
+        Si se deja vacía y hay valor actual, devuelve el valor actual.
+
+        Returns:
+            La fecha, el valor actual, o None (con aviso) si no es válida.
+        """
+        texto = input(mensaje)
+        if texto == "" and actual is not None:
+            return actual
+        try:
+            return datetime.strptime(texto, '%Y-%m-%d').date()
+        except ValueError:
+            print("Error: La fecha debe tener formato AAAA-MM-DD.")
+            return None
+
+    def iniciar(self) -> None:
         while True:
             print("\n" + "="*30)
             print(" BOOK MANAGER - MENÚ PRINCIPAL ")
@@ -43,9 +109,9 @@ class ConsolaUI:
             print("7. Gestionar Precios")
             print("8. Gestionar Cotización del Dólar")
             print("0. Salir")
-            
+
             opcion = input("Seleccione una opción: ")
-            
+
             if opcion == '1':
                 self.menu_generos()
             elif opcion == '2':
@@ -71,7 +137,7 @@ class ConsolaUI:
     # ==========================================
     # CRUD GÉNEROS (Ejemplo Servicio Genérico)
     # ==========================================
-    def menu_generos(self):
+    def menu_generos(self) -> None:
         while True:
             print("\n--- MENÚ GÉNEROS ---")
             print("1. Crear Género")
@@ -80,56 +146,59 @@ class ConsolaUI:
             print("4. Actualizar Género")
             print("5. Eliminar Género")
             print("0. Volver al Menú Principal")
-            
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_gen = self._pedir_entero("Ingrese ID del género: ")
+                if id_gen is None:
+                    continue
+                nombre = input("Ingrese nombre del género: ")
                 try:
-                    id_gen = int(input("Ingrese ID del género: "))
-                    nombre = input("Ingrese nombre del género: ")
-                    nuevo_genero = Genero(id=id_gen, nombre=nombre)
-                    self.svc_generos.crear(nuevo_genero)
+                    self.svc_generos.crear(Genero(id=id_gen, nombre=nombre))
                     print(f"Éxito: Género '{nombre}' creado.")
                 except ValueError as e:
                     print(f"Error: {e}")
-            
+
             elif opcion == '2':
                 generos = self.svc_generos.listar()
                 if not generos:
                     print("No hay géneros registrados.")
                 for g in generos:
                     print(g)
-                    
+
             elif opcion == '3':
-                try:
-                    id_gen = int(input("Ingrese ID a buscar: "))
-                    genero = self.svc_generos.buscar_por_id(id_gen)
-                    if genero:
-                        print(genero)
-                    else:
-                        print("Género no encontrado.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
-                    
+                id_gen = self._pedir_entero("Ingrese ID a buscar: ")
+                if id_gen is None:
+                    continue
+                genero = self.svc_generos.buscar_por_id(id_gen)
+                if genero:
+                    print(genero)
+                else:
+                    print("Género no encontrado.")
+
             elif opcion == '4':
+                id_gen = self._pedir_entero(
+                    "Ingrese ID del género a actualizar: ")
+                if id_gen is None:
+                    continue
+                genero = self.svc_generos.buscar_por_id(id_gen)
+                if genero is None:
+                    print("Género no encontrado.")
+                    continue
+                nuevo_nombre = input(
+                    f"Ingrese nuevo nombre (Actual: {genero.nombre}): ")
                 try:
-                    id_gen = int(input("Ingrese ID del género a actualizar: "))
-                    genero_existente = self.svc_generos.buscar_por_id(id_gen)
-                    if genero_existente:
-                        nuevo_nombre = input(f"Ingrese nuevo nombre (Actual: {genero_existente.nombre}): ")
-                        genero_actualizado = Genero(id=id_gen, nombre=nuevo_nombre)
-                        self.svc_generos.actualizar(genero_actualizado)
-                        print("Género actualizado con éxito.")
-                    else:
-                        print("Género no encontrado.")
+                    self.svc_generos.actualizar(
+                        Genero(id=id_gen, nombre=nuevo_nombre))
+                    print("Género actualizado con éxito.")
                 except ValueError as e:
                     print(f"Error: {e}")
-                    
+
             elif opcion == '5':
-                try:
-                    id_gen = int(input("Ingrese ID del género a eliminar: "))
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
+                id_gen = self._pedir_entero(
+                    "Ingrese ID del género a eliminar: ")
+                if id_gen is None:
                     continue
                 try:
                     if self.svc_generos.eliminar(id_gen):
@@ -138,84 +207,113 @@ class ConsolaUI:
                         print("No se encontró el género para eliminar.")
                 except ValueError as e:
                     print(f"Error: {e}")
-                    
+
             elif opcion == '0':
                 break
+
+            else:
+                print("Opción no válida.")
 
     # ==========================================
     # CRUD STOCK (Ejemplo Servicio Específico)
     # ==========================================
-    def menu_stock(self):
+    def menu_stock(self) -> None:
         while True:
             print("\n--- MENÚ STOCK ---")
-            print("1. Crear/Registrar Stock para un Libro")
-            print("2. Buscar Stock por ID de Libro")
-            print("3. Actualizar Stock")
-            print("4. Eliminar Stock de un Libro")
+            print("1. Crear Stock para un Libro")
+            print("2. Listar Stock")
+            print("3. Buscar Stock por ID de Libro")
+            print("4. Actualizar Stock de un Libro")
+            print("5. Eliminar Stock de un Libro")
             print("0. Volver")
-            
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_stock = self._pedir_entero(
+                    "Ingrese ID del registro de stock: ")
+                if id_stock is None:
+                    continue
+                id_libro = self._pedir_entero(
+                    "Ingrese ID del libro asociado: ")
+                if id_libro is None:
+                    continue
+                cantidad = self._pedir_entero("Ingrese cantidad: ")
+                if cantidad is None:
+                    continue
+                libro = self.svc_libros.buscar_por_id(id_libro)
+                if libro is None:
+                    print("Libro no encontrado.")
+                    continue
                 try:
-                    id_stock = int(input("Ingrese ID del registro de stock: "))
-                    id_libro = int(input("Ingrese ID del libro asociado: "))
-                    
-                    # Verificamos que el libro exista primero
-                    libro = self.svc_libros.buscar_por_id(id_libro)
-                    if not libro:
-                        print(f"Error: No existe un libro con ID {id_libro}. Cree el libro primero.")
-                        continue
-                        
-                    cantidad = int(input("Ingrese cantidad en stock: "))
-                    nuevo_stock = Stock(id=id_stock, libro=libro, cantidad=cantidad)
-                    self.svc_stock.crear(nuevo_stock)
-                    print("Stock registrado con éxito.")
+                    self.svc_stock.crear(
+                        Stock(id=id_stock, libro=libro, cantidad=cantidad))
+                    print("Éxito: Stock creado.")
                 except ValueError as e:
                     print(f"Error: {e}")
-            
+
             elif opcion == '2':
-                try:
-                    id_libro = int(input("Ingrese ID del libro para consultar su stock: "))
-                    stock = self.svc_stock.buscar_por_libro(id_libro)
+                hay_stock = False
+                for libro in self.svc_libros.listar():
+                    stock = self.svc_stock.buscar_por_libro(libro.id)
                     if stock:
                         print(stock)
-                    else:
-                        print("No hay registro de stock para ese libro.")
-                except ValueError:
-                    print("Error: Ingrese un número válido.")
-                    
+                        hay_stock = True
+                if not hay_stock:
+                    print("No hay stock registrado.")
+
             elif opcion == '3':
+                id_libro = self._pedir_entero("Ingrese ID del libro: ")
+                if id_libro is None:
+                    continue
+                stock = self.svc_stock.buscar_por_libro(id_libro)
+                if stock:
+                    print(stock)
+                else:
+                    print("No hay stock para ese libro.")
+
+            elif opcion == '4':
+                id_libro = self._pedir_entero("Ingrese ID del libro: ")
+                if id_libro is None:
+                    continue
+                existente = self.svc_stock.buscar_por_libro(id_libro)
+                if existente is None:
+                    print("No hay stock para ese libro.")
+                    continue
+                cantidad = self._pedir_entero(
+                    f"Nueva cantidad (actual: {existente.cantidad}): ")
+                if cantidad is None:
+                    continue
                 try:
-                    id_libro = int(input("Ingrese ID del libro para actualizar stock: "))
-                    stock_existente = self.svc_stock.buscar_por_libro(id_libro)
-                    if stock_existente:
-                        nueva_cantidad = int(input(f"Ingrese nueva cantidad (Actual: {stock_existente.cantidad}): "))
-                        stock_actualizado = Stock(id=stock_existente.id, libro=stock_existente.libro, cantidad=nueva_cantidad)
-                        self.svc_stock.actualizar(stock_actualizado)
-                        print("Stock actualizado.")
-                    else:
-                        print("Stock no encontrado para ese libro.")
+                    self.svc_stock.actualizar(
+                        Stock(id=existente.id, libro=existente.libro,
+                              cantidad=cantidad))
+                    print("Stock actualizado con éxito.")
                 except ValueError as e:
                     print(f"Error: {e}")
-                    
-            elif opcion == '4':
+
+            elif opcion == '5':
+                id_libro = self._pedir_entero("Ingrese ID del libro: ")
+                if id_libro is None:
+                    continue
                 try:
-                    id_libro = int(input("Ingrese ID del libro para eliminar su registro de stock: "))
                     if self.svc_stock.eliminar(id_libro):
-                        print("Registro de stock eliminado.")
+                        print("Stock eliminado.")
                     else:
-                        print("No se encontró registro de stock para ese libro.")
-                except ValueError:
-                    print("Error: Ingrese un número entero.")
-                    
+                        print("No hay stock para ese libro.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '0':
                 break
+
+            else:
+                print("Opción no válida.")
 
     # ==========================================
     # CRUD EDITORIALES
     # ==========================================
-    def menu_editoriales(self):
+    def menu_editoriales(self) -> None:
         while True:
             print("\n--- MENÚ EDITORIALES ---")
             print("1. Crear Editorial")
@@ -224,230 +322,216 @@ class ConsolaUI:
             print("4. Actualizar Editorial")
             print("5. Eliminar Editorial")
             print("0. Volver al Menú Principal")
-            
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_ed = self._pedir_entero("Ingrese ID de la editorial: ")
+                if id_ed is None:
+                    continue
+                nombre = input("Ingrese nombre: ")
+                sede = input("Ingrese sede: ")
                 try:
-                    id_ed = int(input("Ingrese ID de la editorial: "))
-                    nombre = input("Ingrese nombre: ")
-                    sede = input("Ingrese sede: ")
-                    nueva_editorial = Editorial(id=id_ed, nombre=nombre, sede=sede)
-                    self.svc_editoriales.crear(nueva_editorial)
+                    self.svc_editoriales.crear(
+                        Editorial(id=id_ed, nombre=nombre, sede=sede))
                     print(f"Éxito: Editorial '{nombre}' creada.")
                 except ValueError as e:
                     print(f"Error: {e}")
-            
+
             elif opcion == '2':
                 editoriales = self.svc_editoriales.listar()
                 if not editoriales:
                     print("No hay editoriales registradas.")
                 for ed in editoriales:
                     print(ed)
-                    
+
             elif opcion == '3':
-                try:
-                    id_ed = int(input("Ingrese ID a buscar: "))
-                    editorial = self.svc_editoriales.buscar_por_id(id_ed)
-                    if editorial:
-                        print(editorial)
-                    else:
-                        print("Editorial no encontrada.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
-                    
+                id_ed = self._pedir_entero("Ingrese ID a buscar: ")
+                if id_ed is None:
+                    continue
+                editorial = self.svc_editoriales.buscar_por_id(id_ed)
+                if editorial:
+                    print(editorial)
+                else:
+                    print("Editorial no encontrada.")
+
             elif opcion == '4':
+                id_ed = self._pedir_entero(
+                    "Ingrese ID de la editorial a actualizar: ")
+                if id_ed is None:
+                    continue
+                existente = self.svc_editoriales.buscar_por_id(id_ed)
+                if existente is None:
+                    print("Editorial no encontrada.")
+                    continue
+                nuevo_nombre = input(
+                    f"Ingrese nuevo nombre (Actual: {existente.nombre}): ")
+                nueva_sede = input(
+                    f"Ingrese nueva sede (Actual: {existente.sede}): ")
                 try:
-                    id_ed = int(input("Ingrese ID de la editorial a actualizar: "))
-                    ed_existente = self.svc_editoriales.buscar_por_id(id_ed)
-                    if ed_existente:
-                        nuevo_nombre = input(f"Ingrese nuevo nombre (Actual: {ed_existente.nombre}): ")
-                        nueva_sede = input(f"Ingrese nueva sede (Actual: {ed_existente.sede}): ")
-                        ed_actualizada = Editorial(id=id_ed, nombre=nuevo_nombre, sede=nueva_sede)
-                        self.svc_editoriales.actualizar(ed_actualizada)
-                        print("Editorial actualizada con éxito.")
-                    else:
-                        print("Editorial no encontrada.")
+                    self.svc_editoriales.actualizar(
+                        Editorial(id=id_ed, nombre=nuevo_nombre,
+                                  sede=nueva_sede))
+                    print("Editorial actualizada con éxito.")
                 except ValueError as e:
                     print(f"Error: {e}")
-                    
+
             elif opcion == '5':
+                id_ed = self._pedir_entero(
+                    "Ingrese ID de la editorial a eliminar: ")
+                if id_ed is None:
+                    continue
                 try:
-                    id_ed = int(input("Ingrese ID de la editorial a eliminar: "))
                     if self.svc_editoriales.eliminar(id_ed):
                         print("Editorial eliminada.")
                     else:
                         print("No se encontró la editorial.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
-                    
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '0':
                 break
+
+            else:
+                print("Opción no válida.")
 
     # ==========================================
     # CRUD LIBROS
     # ==========================================
-    def menu_libros(self):
+    def menu_libros(self) -> None:
         while True:
             print("\n--- MENÚ LIBROS ---")
             print("1. Crear Libro")
             print("2. Listar Libros")
             print("3. Buscar Libro por ID")
-            print("4. Actualizar Libro (Título)")
+            print("4. Actualizar Libro")
             print("5. Eliminar Libro")
             print("0. Volver al Menú Principal")
-            
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_libro = self._pedir_entero("Ingrese ID del Libro: ")
+                if id_libro is None:
+                    continue
+                isbn = input("Ingrese ISBN: ")
+                titulo = input("Ingrese Título: ")
+                autor = input("Ingrese Autor: ")
+
+                # Validar y obtener Género
+                id_gen = self._pedir_entero(
+                    "Ingrese ID del Género existente: ")
+                if id_gen is None:
+                    continue
+                genero_obj = self.svc_generos.buscar_por_id(id_gen)
+                if genero_obj is None:
+                    print("Error: El Género no existe. Abortando creación.")
+                    continue
+
+                # Validar y obtener Editorial
+                id_ed = self._pedir_entero(
+                    "Ingrese ID de la Editorial existente: ")
+                if id_ed is None:
+                    continue
+                editorial_obj = self.svc_editoriales.buscar_por_id(id_ed)
+                if editorial_obj is None:
+                    print("Error: La Editorial no existe. Abortando creación.")
+                    continue
+
                 try:
-                    id_libro = int(input("Ingrese ID del libro: "))
-                    isbn = input("Ingrese ISBN: ")
-                    titulo = input("Ingrese Título: ")
-                    autor = input("Ingrese Autor: ")
-                    
-                    # Validar y obtener Género
-                    id_gen = int(input("Ingrese ID del Género existente: "))
-                    genero_obj = self.svc_generos.buscar_por_id(id_gen)
-                    if not genero_obj:
-                        print("Error: El Género no existe. Abortando creación.")
-                        continue
-                        
-                    # Validar y obtener Editorial
-                    id_ed = int(input("Ingrese ID de la Editorial existente: "))
-                    editorial_obj = self.svc_editoriales.buscar_por_id(id_ed)
-                    if not editorial_obj:
-                        print("Error: La Editorial no existe. Abortando creación.")
-                        continue
-                        
-                    nuevo_libro = Libro(id=id_libro, isbn=isbn, titulo=titulo, autor=autor, genero=genero_obj, editorial=editorial_obj)
-                    self.svc_libros.crear(nuevo_libro)
+                    self.svc_libros.crear(Libro(
+                        id=id_libro, isbn=isbn, titulo=titulo, autor=autor,
+                        genero=genero_obj, editorial=editorial_obj))
                     print(f"Éxito: Libro '{titulo}' creado.")
                 except ValueError as e:
-                    print(f"Error en el ingreso de datos: {e}")
-            
+                    print(f"Error: {e}")
+
             elif opcion == '2':
                 libros = self.svc_libros.listar()
                 if not libros:
                     print("No hay libros registrados.")
                 for lib in libros:
                     print(lib)
-                    
+
             elif opcion == '3':
-                try:
-                    id_libro = int(input("Ingrese ID a buscar: "))
-                    libro = self.svc_libros.buscar_por_id(id_libro)
-                    if libro:
-                        print(libro)
-                    else:
-                        print("Libro no encontrado.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
-                    
+                id_libro = self._pedir_entero("Ingrese ID a buscar: ")
+                if id_libro is None:
+                    continue
+                libro = self.svc_libros.buscar_por_id(id_libro)
+                if libro:
+                    print(libro)
+                else:
+                    print("Libro no encontrado.")
+
             elif opcion == '4':
+                id_libro = self._pedir_entero(
+                    "Ingrese ID del Libro a actualizar: ")
+                if id_libro is None:
+                    continue
+                existente = self.svc_libros.buscar_por_id(id_libro)
+                if existente is None:
+                    print("Libro no encontrado.")
+                    continue
+
+                print("Enter sin escribir nada mantiene el valor actual.")
+                isbn = input(f"ISBN (actual: {existente.isbn}): ")
+                isbn = isbn or existente.isbn
+                titulo = input(f"Título (actual: {existente.titulo}): ")
+                titulo = titulo or existente.titulo
+                autor = input(f"Autor (actual: {existente.autor}): ")
+                autor = autor or existente.autor
+
+                id_gen = self._pedir_entero_o_actual(
+                    f"ID de género (actual: {existente.genero.id}): ",
+                    existente.genero.id)
+                if id_gen is None:
+                    continue
+                genero = self.svc_generos.buscar_por_id(id_gen)
+                if genero is None:
+                    print("Error: El Género no existe. Abortando.")
+                    continue
+
+                id_ed = self._pedir_entero_o_actual(
+                    f"ID de editorial (actual: {existente.editorial.id}): ",
+                    existente.editorial.id)
+                if id_ed is None:
+                    continue
+                editorial = self.svc_editoriales.buscar_por_id(id_ed)
+                if editorial is None:
+                    print("Error: La Editorial no existe. Abortando.")
+                    continue
+
                 try:
-                    id_libro = int(input("Ingrese ID del libro a actualizar: "))
-                    lib_existente = self.svc_libros.buscar_por_id(id_libro)
-                    if lib_existente:
-                        nuevo_titulo = input(f"Ingrese nuevo título (Actual: {lib_existente.titulo}): ")
-                        # Se reutilizan los objetos de la relación existente para esta actualización simple
-                        lib_actualizado = Libro(id=id_libro, isbn=lib_existente.isbn, titulo=nuevo_titulo, autor=lib_existente.autor, genero=lib_existente.genero, editorial=lib_existente.editorial)
-                        self.svc_libros.actualizar(lib_actualizado)
-                        print("Libro actualizado con éxito.")
-                    else:
-                        print("Libro no encontrado.")
+                    self.svc_libros.actualizar(Libro(
+                        id=id_libro, isbn=isbn, titulo=titulo,
+                        autor=autor, genero=genero, editorial=editorial))
+                    print("Libro actualizado con éxito.")
                 except ValueError as e:
                     print(f"Error: {e}")
-                    
+
             elif opcion == '5':
+                id_libro = self._pedir_entero(
+                    "Ingrese ID del Libro a eliminar: ")
+                if id_libro is None:
+                    continue
                 try:
-                    id_libro = int(input("Ingrese ID del libro a eliminar: "))
                     if self.svc_libros.eliminar(id_libro):
-                        print("Libro eliminado.")
+                        print(f"Libro '{id_libro}' eliminado.")
                     else:
                         print("No se encontró el libro.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
-                    
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '0':
                 break
 
-    # ==========================================
-    # CRUD EDITORIALES
-    # ==========================================
-    def menu_editoriales(self):
-        while True:
-            print("\n--- MENÚ EDITORIALES ---")
-            print("1. Crear Editorial")
-            print("2. Listar Editoriales")
-            print("3. Buscar Editorial por ID")
-            print("4. Actualizar Editorial")
-            print("5. Eliminar Editorial")
-            print("0. Volver al Menú Principal")
-            
-            opcion = input("Seleccione: ")
-            
-            if opcion == '1':
-                try:
-                    id_ed = int(input("Ingrese ID de la editorial: "))
-                    nombre = input("Ingrese nombre: ")
-                    sede = input("Ingrese sede: ")
-                    nueva_editorial = Editorial(id=id_ed, nombre=nombre, sede=sede)
-                    self.svc_editoriales.crear(nueva_editorial)
-                    print(f"Éxito: Editorial '{nombre}' creada.")
-                except ValueError as e:
-                    print(f"Error: {e}")
-            
-            elif opcion == '2':
-                editoriales = self.svc_editoriales.listar()
-                if not editoriales:
-                    print("No hay editoriales registradas.")
-                for ed in editoriales:
-                    print(ed)
-                    
-            elif opcion == '3':
-                try:
-                    id_ed = int(input("Ingrese ID a buscar: "))
-                    editorial = self.svc_editoriales.buscar_por_id(id_ed)
-                    if editorial:
-                        print(editorial)
-                    else:
-                        print("Editorial no encontrada.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
-                    
-            elif opcion == '4':
-                try:
-                    id_ed = int(input("Ingrese ID de la editorial a actualizar: "))
-                    ed_existente = self.svc_editoriales.buscar_por_id(id_ed)
-                    if ed_existente:
-                        nuevo_nombre = input(f"Ingrese nuevo nombre (Actual: {ed_existente.nombre}): ")
-                        nueva_sede = input(f"Ingrese nueva sede (Actual: {ed_existente.sede}): ")
-                        ed_actualizada = Editorial(id=id_ed, nombre=nuevo_nombre, sede=nueva_sede)
-                        self.svc_editoriales.actualizar(ed_actualizada)
-                        print("Editorial actualizada con éxito.")
-                    else:
-                        print("Editorial no encontrada.")
-                except ValueError as e:
-                    print(f"Error: {e}")
-                    
-            elif opcion == '5':
-                try:
-                    id_ed = int(input("Ingrese ID de la editorial a eliminar: "))
-                    if self.svc_editoriales.eliminar(id_ed):
-                        print("Editorial eliminada.")
-                    else:
-                        print("No se encontró la editorial.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
-                    
-            elif opcion == '0':
-                break
+            else:
+                print("Opción no válida.")
 
     # ==========================================
     # CRUD MONEDAS
     # ==========================================
-    def menu_monedas(self):
+    def menu_monedas(self) -> None:
         while True:
             print("\n--- MENÚ MONEDAS ---")
             print("1. Crear Moneda")
@@ -456,41 +540,83 @@ class ConsolaUI:
             print("4. Actualizar Moneda")
             print("5. Eliminar Moneda")
             print("0. Volver")
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_mon = self._pedir_entero("Ingrese ID de la moneda: ")
+                if id_mon is None:
+                    continue
+                codigo = input("Ingrese código (ej. ARS, USD): ")
+                nombre = input("Ingrese nombre: ")
                 try:
-                    id_mon = int(input("Ingrese ID: "))
-                    codigo = input("Ingrese código (ej. ARS, USD): ")
-                    nombre = input("Ingrese nombre: ")
-                    self.svc_monedas.crear(Moneda(id=id_mon, codigo=codigo, nombre=nombre))
-                    print("Moneda creada.")
-                except ValueError as e: print(f"Error: {e}")
+                    self.svc_monedas.crear(
+                        Moneda(id=id_mon, codigo=codigo, nombre=nombre))
+                    print(f"Éxito: Moneda '{nombre}' creada.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '2':
-                for m in self.svc_monedas.listar(): print(m)
+                monedas = self.svc_monedas.listar()
+                if not monedas:
+                    print("No hay monedas registradas.")
+                for m in monedas:
+                    print(m)
+
             elif opcion == '3':
-                try:
-                    m = self.svc_monedas.buscar_por_id(int(input("ID a buscar: ")))
-                    print(m if m else "No encontrada.")
-                except ValueError: print("Error de ID.")
+                id_mon = self._pedir_entero("Ingrese ID a buscar: ")
+                if id_mon is None:
+                    continue
+                moneda = self.svc_monedas.buscar_por_id(id_mon)
+                if moneda:
+                    print(moneda)
+                else:
+                    print("Moneda no encontrada.")
+
             elif opcion == '4':
+                id_mon = self._pedir_entero(
+                    "Ingrese ID de la moneda a actualizar: ")
+                if id_mon is None:
+                    continue
+                existente = self.svc_monedas.buscar_por_id(id_mon)
+                if existente is None:
+                    print("Moneda no encontrada.")
+                    continue
+                print("Enter sin escribir nada mantiene el valor actual.")
+                codigo = input(f"Código (actual: {existente.codigo}): ")
+                codigo = codigo or existente.codigo
+                nombre = input(f"Nombre (actual: {existente.nombre}): ")
+                nombre = nombre or existente.nombre
                 try:
-                    id_mon = int(input("ID a actualizar: "))
-                    m = self.svc_monedas.buscar_por_id(id_mon)
-                    if m:
-                        self.svc_monedas.actualizar(Moneda(id=id_mon, codigo=input("Nuevo código: "), nombre=input("Nuevo nombre: ")))
-                        print("Actualizada.")
-                    else: print("No encontrada.")
-                except ValueError as e: print(f"Error: {e}")
+                    self.svc_monedas.actualizar(
+                        Moneda(id=id_mon, codigo=codigo, nombre=nombre))
+                    print("Moneda actualizada con éxito.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '5':
-                try: print("Eliminada." if self.svc_monedas.eliminar(int(input("ID a eliminar: "))) else "No encontrada.")
-                except ValueError: print("Error de ID.")
-            elif opcion == '0': break
+                id_mon = self._pedir_entero(
+                    "Ingrese ID de la moneda a eliminar: ")
+                if id_mon is None:
+                    continue
+                try:
+                    if self.svc_monedas.eliminar(id_mon):
+                        print("Moneda eliminada.")
+                    else:
+                        print("No se encontró la moneda.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
+            elif opcion == '0':
+                break
+
+            else:
+                print("Opción no válida.")
 
     # ==========================================
     # CRUD TIPOS DE COTIZACIÓN
     # ==========================================
-    def menu_tipos_cotizacion(self):
+    def menu_tipos_cotizacion(self) -> None:
         while True:
             print("\n--- MENÚ TIPOS COTIZACIÓN ---")
             print("1. Crear Tipo")
@@ -499,116 +625,308 @@ class ConsolaUI:
             print("4. Actualizar Tipo")
             print("5. Eliminar Tipo")
             print("0. Volver")
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_tipo = self._pedir_entero(
+                    "Ingrese el ID del tipo de cotización: ")
+                if id_tipo is None:
+                    continue
+                nombre = input("Ingrese nombre del tipo de cotización: ")
                 try:
-                    self.svc_tipos_cotizacion.crear(TipoCotizacion(id=int(input("ID: ")), nombre=input("Nombre (ej. Oficial, Blue): ")))
+                    self.svc_tipos_cotizacion.crear(
+                        TipoCotizacion(id=id_tipo, nombre=nombre))
                     print("Tipo de cotización creado.")
-                except ValueError as e: print(f"Error: {e}")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '2':
-                for t in self.svc_tipos_cotizacion.listar(): print(t)
+                tipos = self.svc_tipos_cotizacion.listar()
+                if not tipos:
+                    print("No hay tipos de cotización registrados.")
+                for t in tipos:
+                    print(t)
+
             elif opcion == '3':
-                try:
-                    t = self.svc_tipos_cotizacion.buscar_por_id(int(input("ID a buscar: ")))
-                    print(t if t else "No encontrado.")
-                except ValueError: print("Error de ID.")
+                id_tipo = self._pedir_entero("Ingrese ID a buscar: ")
+                if id_tipo is None:
+                    continue
+                tipo = self.svc_tipos_cotizacion.buscar_por_id(id_tipo)
+                if tipo:
+                    print(tipo)
+                else:
+                    print("Tipo de cotización no encontrado.")
+
             elif opcion == '4':
+                id_tipo = self._pedir_entero(
+                    "Ingrese el ID del tipo de cotización a actualizar: ")
+                if id_tipo is None:
+                    continue
+                existente = self.svc_tipos_cotizacion.buscar_por_id(id_tipo)
+                if existente is None:
+                    print("Tipo de cotización no encontrado.")
+                    continue
+                nuevo_nombre = input(
+                    f"Nuevo nombre (actual: {existente.nombre}): ")
                 try:
-                    id_tipo = int(input("ID a actualizar: "))
-                    if self.svc_tipos_cotizacion.buscar_por_id(id_tipo):
-                        self.svc_tipos_cotizacion.actualizar(TipoCotizacion(id=id_tipo, nombre=input("Nuevo nombre: ")))
-                        print("Actualizado.")
-                    else: print("No encontrado.")
-                except ValueError as e: print(f"Error: {e}")
+                    self.svc_tipos_cotizacion.actualizar(
+                        TipoCotizacion(id=id_tipo, nombre=nuevo_nombre))
+                    print("Tipo de cotización actualizado.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '5':
-                try: print("Eliminado." if self.svc_tipos_cotizacion.eliminar(int(input("ID a eliminar: "))) else "No encontrado.")
-                except ValueError: print("Error de ID.")
-            elif opcion == '0': break
+                id_tipo = self._pedir_entero(
+                    "Ingrese el ID del tipo de cotización a eliminar: ")
+                if id_tipo is None:
+                    continue
+                try:
+                    if self.svc_tipos_cotizacion.eliminar(id_tipo):
+                        print("Tipo de cotización eliminado.")
+                    else:
+                        print("No se encontró el tipo de cotización.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
+            elif opcion == '0':
+                break
+
+            else:
+                print("Opción no válida.")
 
     # ==========================================
     # CRUD PRECIOS
     # ==========================================
-    def menu_precios(self):
+    def menu_precios(self) -> None:
         while True:
             print("\n--- MENÚ PRECIOS ---")
             print("1. Crear Precio")
             print("2. Listar Precios")
-            print("3. Eliminar Precio")
+            print("3. Buscar Precio por ID")
+            print("4. Actualizar Precio (monto y fecha)")
+            print("5. Eliminar Precio")
             print("0. Volver")
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_precio = self._pedir_entero("Ingrese ID del precio: ")
+                if id_precio is None:
+                    continue
+                id_libro = self._pedir_entero("Ingrese ID del libro: ")
+                if id_libro is None:
+                    continue
+                libro = self.svc_libros.buscar_por_id(id_libro)
+                if libro is None:
+                    print("Error: El Libro no existe. Abortando creación.")
+                    continue
+                id_moneda = self._pedir_entero("Ingrese ID de la moneda: ")
+                if id_moneda is None:
+                    continue
+                moneda = self.svc_monedas.buscar_por_id(id_moneda)
+                if moneda is None:
+                    print("Error: La Moneda no existe. Abortando creación.")
+                    continue
+                monto = self._pedir_decimal("Ingrese monto: ")
+                if monto is None:
+                    continue
+                fecha = self._pedir_fecha(
+                    "Ingrese fecha de vigencia (AAAA-MM-DD): ")
+                if fecha is None:
+                    continue
                 try:
-                    id_precio = int(input("ID del precio: "))
-                    libro = self.svc_libros.buscar_por_id(int(input("ID del Libro: ")))
-                    if not libro:
-                        print("Libro no existe. Abortando.")
-                        continue
-                    moneda = self.svc_monedas.buscar_por_id(int(input("ID de la Moneda: ")))
-                    if not moneda:
-                        print("Moneda no existe. Abortando.")
-                        continue
-                    monto = float(input("Monto: "))
-                    fecha_str = input("Fecha de vigencia (YYYY-MM-DD): ")
-                    fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
-                    
-                    self.svc_precios.crear(Precio(id=id_precio, libro=libro, moneda=moneda, monto=monto, fecha_vigencia=fecha))
-                    print("Precio registrado.")
-                except ValueError as e: print(f"Error de formato o validación: {e}")
+                    self.svc_precios.crear(Precio(
+                        id=id_precio, libro=libro, moneda=moneda,
+                        monto=monto, fecha_vigencia=fecha))
+                    print("Éxito: Precio creado.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '2':
-                for p in self.svc_precios.listar(): print(p)
+                precios = self.svc_precios.listar()
+                if not precios:
+                    print("No hay precios registrados.")
+                for p in precios:
+                    print(p)
+
             elif opcion == '3':
-                try: print("Eliminado." if self.svc_precios.eliminar(int(input("ID del Precio a eliminar: "))) else "No encontrado.")
-                except ValueError: print("Error de ID.")
-            elif opcion == '0': break
+                id_precio = self._pedir_entero("Ingrese ID a buscar: ")
+                if id_precio is None:
+                    continue
+                precio = self.svc_precios.buscar_por_id(id_precio)
+                if precio:
+                    print(precio)
+                else:
+                    print("Precio no encontrado.")
+
+            elif opcion == '4':
+                id_precio = self._pedir_entero(
+                    "Ingrese ID del precio a actualizar: ")
+                if id_precio is None:
+                    continue
+                existente = self.svc_precios.buscar_por_id(id_precio)
+                if existente is None:
+                    print("Precio no encontrado.")
+                    continue
+                print("Enter sin escribir nada mantiene el valor actual.")
+                monto = self._pedir_decimal(
+                    f"Monto (actual: {existente.monto}): ", existente.monto)
+                if monto is None:
+                    continue
+                fecha = self._pedir_fecha(
+                    f"Fecha (actual: {existente.fecha_vigencia}): ",
+                    existente.fecha_vigencia)
+                if fecha is None:
+                    continue
+                try:
+                    self.svc_precios.actualizar(Precio(
+                        id=id_precio, libro=existente.libro,
+                        moneda=existente.moneda, monto=monto,
+                        fecha_vigencia=fecha))
+                    print("Precio actualizado con éxito.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
+            elif opcion == '5':
+                id_precio = self._pedir_entero(
+                    "Ingrese ID del precio a eliminar: ")
+                if id_precio is None:
+                    continue
+                try:
+                    if self.svc_precios.eliminar(id_precio):
+                        print("Precio eliminado.")
+                    else:
+                        print("No se encontró el precio.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
+            elif opcion == '0':
+                break
+
+            else:
+                print("Opción no válida.")
 
     # ==========================================
-    # CRUD COTIZACIÓN DÓLAR
+    # CRUD COTIZACIÓN DEL DÓLAR
     # ==========================================
-    def menu_cotizaciones(self):
+    def menu_cotizaciones(self) -> None:
         while True:
-            print("\n--- MENÚ COTIZACIÓN DÓLAR ---")
+            print("\n--- MENÚ COTIZACIÓN DEL DÓLAR ---")
             print("1. Crear Cotización")
-            print("2. Buscar Cotización por Tipo y Fecha")
-            print("3. Listar Histórico por Tipo")
-            print("4. Eliminar Cotización")
+            print("2. Listar Cotizaciones")
+            print("3. Buscar por Tipo y Fecha")
+            print("4. Actualizar Cotización (valores)")
+            print("5. Eliminar Cotización")
             print("0. Volver")
+
             opcion = input("Seleccione: ")
-            
+
             if opcion == '1':
+                id_cot = self._pedir_entero("Ingrese ID de la cotización: ")
+                if id_cot is None:
+                    continue
+                id_tipo = self._pedir_entero(
+                    "Ingrese ID del tipo de cotización: ")
+                if id_tipo is None:
+                    continue
+                tipo = self.svc_tipos_cotizacion.buscar_por_id(id_tipo)
+                if tipo is None:
+                    print("Error: El Tipo no existe. Abortando creación.")
+                    continue
+                fecha = self._pedir_fecha("Ingrese fecha (AAAA-MM-DD): ")
+                if fecha is None:
+                    continue
+                compra = self._pedir_decimal("Ingrese valor de compra: ")
+                if compra is None:
+                    continue
+                venta = self._pedir_decimal("Ingrese valor de venta: ")
+                if venta is None:
+                    continue
                 try:
-                    id_cot = int(input("ID de cotización: "))
-                    tipo = self.svc_tipos_cotizacion.buscar_por_id(int(input("ID del Tipo de Cotización: ")))
-                    if not tipo:
-                        print("Tipo de cotización no existe. Abortando.")
-                        continue
-                    fecha_str = input("Fecha (YYYY-MM-DD): ")
-                    fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
-                    compra = float(input("Valor Compra: "))
-                    venta = float(input("Valor Venta: "))
-                    
-                    self.svc_cotizaciones.crear(CotizacionDolar(id=id_cot, tipo_cotizacion=tipo, fecha=fecha, valor_compra=compra, valor_venta=venta))
-                    print("Cotización registrada.")
-                except ValueError as e: print(f"Error de formato: {e}")
+                    self.svc_cotizaciones.crear(CotizacionDolar(
+                        id=id_cot, tipo_cotizacion=tipo, fecha=fecha,
+                        valor_compra=compra, valor_venta=venta))
+                    print("Éxito: Cotización creada.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == '2':
-                try:
-                    tipo_id = int(input("ID del Tipo: "))
-                    fecha = datetime.strptime(input("Fecha (YYYY-MM-DD): "), "%Y-%m-%d").date()
-                    cot = self.svc_cotizaciones.buscar_por_tipo_y_fecha(tipo_id, fecha)
-                    print(cot if cot else "No encontrada.")
-                except ValueError: print("Error en ingreso de datos.")
+                hay_cotizaciones = False
+                for t in self.svc_tipos_cotizacion.listar():
+                    for c in self.svc_cotizaciones.listar_historico(t.id):
+                        print(c)
+                        hay_cotizaciones = True
+                if not hay_cotizaciones:
+                    print("No hay cotizaciones registradas.")
+
             elif opcion == '3':
-                try:
-                    hist = self.svc_cotizaciones.listar_historico(int(input("ID del Tipo a consultar: ")))
-                    if hist:
-                        for h in hist: print(h)
-                    else: print("Sin registros para ese tipo.")
-                except ValueError: print("Error de ID.")
+                id_tipo = self._pedir_entero(
+                    "Ingrese ID del tipo de cotización: ")
+                if id_tipo is None:
+                    continue
+                fecha = self._pedir_fecha("Ingrese fecha (AAAA-MM-DD): ")
+                if fecha is None:
+                    continue
+                cotizacion = self.svc_cotizaciones.buscar_por_tipo_y_fecha(
+                    id_tipo, fecha)
+                if cotizacion:
+                    print(cotizacion)
+                else:
+                    print("Cotización no encontrada.")
+
             elif opcion == '4':
+                id_tipo = self._pedir_entero(
+                    "Ingrese ID del tipo de cotización: ")
+                if id_tipo is None:
+                    continue
+                fecha = self._pedir_fecha("Ingrese fecha (AAAA-MM-DD): ")
+                if fecha is None:
+                    continue
+                existente = self.svc_cotizaciones.buscar_por_tipo_y_fecha(
+                    id_tipo, fecha)
+                if existente is None:
+                    print("Cotización no encontrada.")
+                    continue
+                print("Enter sin escribir nada mantiene el valor actual.")
+                compra = self._pedir_decimal(
+                    f"Compra (actual: {existente.valor_compra}): ",
+                    existente.valor_compra)
+                if compra is None:
+                    continue
+                venta = self._pedir_decimal(
+                    f"Venta (actual: {existente.valor_venta}): ",
+                    existente.valor_venta)
+                if venta is None:
+                    continue
                 try:
-                    tipo_id = int(input("ID del Tipo: "))
-                    fecha = datetime.strptime(input("Fecha (YYYY-MM-DD): "), "%Y-%m-%d").date()
-                    print("Eliminada." if self.svc_cotizaciones.eliminar(tipo_id, fecha) else "No encontrada.")
-                except ValueError: print("Error en ingreso de datos.")
-            elif opcion == '0': break
+                    self.svc_cotizaciones.actualizar(CotizacionDolar(
+                        id=existente.id,
+                        tipo_cotizacion=existente.tipo_cotizacion,
+                        fecha=existente.fecha, valor_compra=compra,
+                        valor_venta=venta))
+                    print("Cotización actualizada con éxito.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
+            elif opcion == '5':
+                id_tipo = self._pedir_entero(
+                    "Ingrese ID del tipo de cotización: ")
+                if id_tipo is None:
+                    continue
+                fecha = self._pedir_fecha("Ingrese fecha (AAAA-MM-DD): ")
+                if fecha is None:
+                    continue
+                try:
+                    if self.svc_cotizaciones.eliminar(id_tipo, fecha):
+                        print("Cotización eliminada.")
+                    else:
+                        print("No se encontró la cotización.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
+            elif opcion == '0':
+                break
+
+            else:
+                print("Opción no válida.")

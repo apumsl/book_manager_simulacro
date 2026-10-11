@@ -1,5 +1,9 @@
 # Changelog
 
+## [Ejercicio 7]
+- Corrección: `main.py` crea los repositorios (con persistencia en CSV dentro de `data/`), los servicios y la consola; el parámetro `import_default_data` carga los datos iniciales solo la primera vez.
+- Corrección: `ConsolaUI` recibe los servicios ya construidos en lugar de crearlos.
+
 ## [Ejercicio 4]
 - Corrección: los servicios aplican reglas de negocio: nombres obligatorios, ISBN único, precio y cotización positivos, compra no mayor a venta, stock no negativo, y no se eliminan registros con datos asociados.
 - Corrección: nueva clase base `ServicioGenerico` con validación y servicios por entidad; `StockService` y `CotizacionDolarService` pasan a llamarse `ServicioStock` y `ServicioCotizacionDolar`.

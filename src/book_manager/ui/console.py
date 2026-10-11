@@ -1,53 +1,33 @@
 from datetime import datetime
-from book_manager.entities.entities import Genero, Editorial, Moneda, TipoCotizacion, CotizacionDolar, Libro, Precio, Stock
-from book_manager.repositories.repositories import RepositorioGenerico, RepositorioStock, RepositorioCotizacionDolar
+
+from book_manager.entities.entities import (
+    CotizacionDolar, Editorial, Genero, Libro, Moneda, Precio, Stock,
+    TipoCotizacion)
 from book_manager.services.services import (
     ServicioCotizacionDolar, ServicioEditorial, ServicioGenero,
     ServicioLibro, ServicioMoneda, ServicioPrecio, ServicioStock,
     ServicioTipoCotizacion)
-from book_manager.preload_data.preload_data import cargar_datos
+
 
 class ConsolaUI:
-    def __init__(self):
-        # 1. Instanciar Repositorios
-        self.repo_generos = RepositorioGenerico()
-        self.repo_editoriales = RepositorioGenerico()
-        self.repo_libros = RepositorioGenerico()
-        self.repo_stock = RepositorioStock()
-        self.repo_monedas = RepositorioGenerico()
-        self.repo_tipos_cotizacion = RepositorioGenerico()
-        self.repo_precios = RepositorioGenerico()
-        self.repo_cotizaciones = RepositorioCotizacionDolar()
-         
-         
-         
-        # Precargar datos desde los CSV
-        cargar_datos(
-            self.repo_generos,
-            self.repo_editoriales,
-            self.repo_monedas,
-            self.repo_tipos_cotizacion,
-            self.repo_libros,
-            self.repo_precios,
-            self.repo_stock,
-            self.repo_cotizaciones
-        )
-        
-        # 2. Instanciar Servicios
-        self.svc_generos = ServicioGenero(
-            self.repo_generos, self.repo_libros)
-        self.svc_editoriales = ServicioEditorial(
-            self.repo_editoriales, self.repo_libros)
-        self.svc_libros = ServicioLibro(
-            self.repo_libros, self.repo_precios, self.repo_stock)
-        self.svc_stock = ServicioStock(self.repo_stock)
-        self.svc_monedas = ServicioMoneda(
-            self.repo_monedas, self.repo_precios)
-        self.svc_tipos_cotizacion = ServicioTipoCotizacion(
-            self.repo_tipos_cotizacion, self.repo_cotizaciones)
-        self.svc_precios = ServicioPrecio(self.repo_precios)
-        self.svc_cotizaciones = ServicioCotizacionDolar(
-            self.repo_cotizaciones)
+    """Interfaz de consola. Recibe los servicios ya construidos."""
+
+    def __init__(self, svc_generos: ServicioGenero,
+                 svc_editoriales: ServicioEditorial,
+                 svc_libros: ServicioLibro,
+                 svc_stock: ServicioStock,
+                 svc_monedas: ServicioMoneda,
+                 svc_tipos_cotizacion: ServicioTipoCotizacion,
+                 svc_precios: ServicioPrecio,
+                 svc_cotizaciones: ServicioCotizacionDolar) -> None:
+        self.svc_generos = svc_generos
+        self.svc_editoriales = svc_editoriales
+        self.svc_libros = svc_libros
+        self.svc_stock = svc_stock
+        self.svc_monedas = svc_monedas
+        self.svc_tipos_cotizacion = svc_tipos_cotizacion
+        self.svc_precios = svc_precios
+        self.svc_cotizaciones = svc_cotizaciones
 
     def iniciar(self):
         while True:

@@ -1,5 +1,11 @@
 # Changelog
 
+## [Ejercicio 3]
+- Definición de la interfaz genérica IRepositorio[T] (crear, leer_por_id, leer_todos, actualizar, eliminar) y su implementación RepositorioGenerico.
+- Definición de interfaces específicas IRepositorioStock e IRepositorioCotizacionDolar (con clave propia: libro_id, y tipo+fecha respectivamente) y sus implementaciones.
+- Los repositorios guardan y cargan sus datos en archivos CSV mediante `almacen_csv.py`; la ruta es opcional y, sin ella, trabajan en memoria.
+- Docstrings con formato `Args`, `Returns` y `Raises` y formato PEP8 en `repositories.py`.
+
 ## [Ejercicio 2]
 - Definición de las entidades del dominio: EntidadBase, Genero, Editorial, Moneda, TipoCotizacion, CotizacionDolar, Libro, Precio, Stock.
 - Aplicación de encapsulamiento (atributos privados con `__`, properties con validación en los setters, incluidos `Moneda` y `TipoCotizacion`).

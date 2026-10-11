@@ -1,5 +1,10 @@
 # Changelog
 
+## [Ejercicio 4]
+- Corrección: los servicios aplican reglas de negocio: nombres obligatorios, ISBN único, precio y cotización positivos, compra no mayor a venta, stock no negativo, y no se eliminan registros con datos asociados.
+- Corrección: nueva clase base `ServicioGenerico` con validación y servicios por entidad; `StockService` y `CotizacionDolarService` pasan a llamarse `ServicioStock` y `ServicioCotizacionDolar`.
+- Corrección: `console.py` crea los nuevos servicios con sus repositorios.
+
 ## [Ejercicio 3]
 - Corrección: se corrige el nombre de la interfaz `IRepositorioStock` y los parámetros mal escritos (`entidad`, `cotizacion`) en las interfaces de los repositorios.
 - Corrección: docstrings con formato `Args`, `Returns` y `Raises`, typos corregidos, comentarios fuera de lugar eliminados y formato PEP8 en `repositories.py`.

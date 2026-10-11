@@ -1,7 +1,10 @@
 from datetime import datetime
 from book_manager.entities.entities import Genero, Editorial, Moneda, TipoCotizacion, CotizacionDolar, Libro, Precio, Stock
 from book_manager.repositories.repositories import RepositorioGenerico, RepositorioStock, RepositorioCotizacionDolar
-from book_manager.services.services import ServicioGenerico, StockService, CotizacionDolarService
+from book_manager.services.services import (
+    ServicioCotizacionDolar, ServicioEditorial, ServicioGenero,
+    ServicioLibro, ServicioMoneda, ServicioPrecio, ServicioStock,
+    ServicioTipoCotizacion)
 from book_manager.preload_data.preload_data import cargar_datos
 
 class ConsolaUI:
@@ -31,14 +34,20 @@ class ConsolaUI:
         )
         
         # 2. Instanciar Servicios
-        self.svc_generos = ServicioGenerico(self.repo_generos)
-        self.svc_editoriales = ServicioGenerico(self.repo_editoriales)
-        self.svc_libros = ServicioGenerico(self.repo_libros)
-        self.svc_stock = StockService(self.repo_stock)
-        self.svc_monedas = ServicioGenerico(self.repo_monedas)
-        self.svc_tipos_cotizacion = ServicioGenerico(self.repo_tipos_cotizacion)
-        self.svc_precios = ServicioGenerico(self.repo_precios)
-        self.svc_cotizaciones = CotizacionDolarService(self.repo_cotizaciones)
+        self.svc_generos = ServicioGenero(
+            self.repo_generos, self.repo_libros)
+        self.svc_editoriales = ServicioEditorial(
+            self.repo_editoriales, self.repo_libros)
+        self.svc_libros = ServicioLibro(
+            self.repo_libros, self.repo_precios, self.repo_stock)
+        self.svc_stock = ServicioStock(self.repo_stock)
+        self.svc_monedas = ServicioMoneda(
+            self.repo_monedas, self.repo_precios)
+        self.svc_tipos_cotizacion = ServicioTipoCotizacion(
+            self.repo_tipos_cotizacion, self.repo_cotizaciones)
+        self.svc_precios = ServicioPrecio(self.repo_precios)
+        self.svc_cotizaciones = ServicioCotizacionDolar(
+            self.repo_cotizaciones)
 
     def iniciar(self):
         while True:
@@ -139,12 +148,16 @@ class ConsolaUI:
             elif opcion == '5':
                 try:
                     id_gen = int(input("Ingrese ID del género a eliminar: "))
+                except ValueError:
+                    print("Error: El ID debe ser un número entero.")
+                    continue
+                try:
                     if self.svc_generos.eliminar(id_gen):
                         print("Género eliminado.")
                     else:
                         print("No se encontró el género para eliminar.")
-                except ValueError:
-                    print("Error: El ID debe ser un número entero.")
+                except ValueError as e:
+                    print(f"Error: {e}")
                     
             elif opcion == '0':
                 break

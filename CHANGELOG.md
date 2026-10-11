@@ -1,5 +1,11 @@
 # Changelog
 
+## [Ejercicio 5]
+- Creación de un CSV de precarga por entidad en `migrations/csv/` (generos, editoriales, monedas, tipos_cotizacion, libros, precios, stock, cotizaciones), con id propio y claves foráneas por id.
+- Se cargan 10 registros por cada clase del dominio.
+- Implementación de `preload_data.py` para leer los CSV, resolver la ruta desde su ubicación y crear las entidades relacionándolas por id.
+- Integración de la carga inicial con los repositorios utilizados por la consola.
+
 ## [Ejercicio 4]
 - Implementación de la capa de servicios en `services.py`.
 - Clase base `ServicioGenerico` con las operaciones de crear, buscar por id, listar, actualizar y eliminar, y un servicio específico por entidad.

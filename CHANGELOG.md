@@ -1,5 +1,12 @@
 # Changelog
 
+## [Ejercicio 6]
+- Creación de la interfaz de consola en `ui/console.py` (clase `ConsolaUI`).
+- Implementación completa del CRUD mediante menús interactivos para las 8 entidades (Libro, Genero, Editorial, Moneda, TipoCotizacion, Precio, Stock, CotizacionDolar).
+- `ConsolaUI` recibe los servicios ya construidos, sin crear repositorios ni cargar datos por su cuenta.
+- Los menús separan la conversión de números y fechas de la llamada al servicio, y muestran el mensaje de las reglas de negocio.
+- Integración de la capa de presentación (UI) con los servicios del sistema.
+
 ## [Ejercicio 5]
 - Creación de un CSV de precarga por entidad en `migrations/csv/` (generos, editoriales, monedas, tipos_cotizacion, libros, precios, stock, cotizaciones), con id propio y claves foráneas por id.
 - Se cargan 10 registros por cada clase del dominio.

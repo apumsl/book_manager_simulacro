@@ -1,5 +1,12 @@
 # Changelog
 
+## [Ejercicio 4]
+- Implementación de la capa de servicios en `services.py`.
+- Clase base `ServicioGenerico` con las operaciones de crear, buscar por id, listar, actualizar y eliminar, y un servicio específico por entidad.
+- `ServicioStock` y `ServicioCotizacionDolar`, que usan sus repositorios con clave propia.
+- Reglas de negocio: nombres obligatorios, ISBN único, precio y cotización positivos, compra no mayor a venta, stock no negativo, y no se eliminan registros con datos asociados.
+- Integración entre la capa de servicios, las entidades y los repositorios.
+
 ## [Ejercicio 3]
 - Definición de la interfaz genérica IRepositorio[T] (crear, leer_por_id, leer_todos, actualizar, eliminar) y su implementación RepositorioGenerico.
 - Definición de interfaces específicas IRepositorioStock e IRepositorioCotizacionDolar (con clave propia: libro_id, y tipo+fecha respectivamente) y sus implementaciones.

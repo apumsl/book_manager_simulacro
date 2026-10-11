@@ -1,5 +1,11 @@
 # Changelog
 
+## [Ejercicio 7]
+- Creación del archivo `main.py` como punto de entrada del sistema.
+- `main.py` crea los repositorios (con persistencia en CSV dentro de `data/`), los servicios y la consola.
+- El parámetro `import_default_data` carga los datos iniciales solo la primera vez.
+- Inicialización de `ConsolaUI` y ejecución del menú principal.
+
 ## [Ejercicio 6]
 - Creación de la interfaz de consola en `ui/console.py` (clase `ConsolaUI`).
 - Implementación completa del CRUD mediante menús interactivos para las 8 entidades (Libro, Genero, Editorial, Moneda, TipoCotizacion, Precio, Stock, CotizacionDolar).

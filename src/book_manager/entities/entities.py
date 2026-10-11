@@ -47,7 +47,7 @@ class Genero (EntidadBase):
 
 
 class Editorial(EntidadBase):
-    """Proveedor/ distibuidora que provee los libros a la librería"""
+    """Proveedor/ distribuidora que provee los libros a la librería"""
 
     def __init__(self, id: int, nombre: str, sede: str) -> None:
         super().__init__(id)

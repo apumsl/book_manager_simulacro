@@ -9,6 +9,7 @@
 - Corrección: se corrige el nombre de la interfaz `IRepositorioStock` y los parámetros mal escritos (`entidad`, `cotizacion`) en las interfaces de los repositorios.
 - Corrección: docstrings con formato `Args`, `Returns` y `Raises`, typos corregidos, comentarios fuera de lugar eliminados y formato PEP8 en `repositories.py`.
 - Corrección: `preload_data.py` usa las interfaces de los repositorios como tipos y cumple PEP8.
+- Corrección: los repositorios guardan y cargan sus datos en archivos CSV mediante `almacen_csv.py`; la ruta es opcional y, sin ella, trabajan en memoria.
 
 ## [Ejercicio 2]
 - Corrección: se agregan setters con validación en `Moneda` (código y nombre) y `TipoCotizacion` (nombre).

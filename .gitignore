@@ -4,3 +4,4 @@ __pycache__/
 .ipynb_checkpoints/
 CLAUDE.md
 *.ipynb
+src/book_manager/data/

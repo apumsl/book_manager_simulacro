@@ -1,5 +1,11 @@
 # Changelog
 
+## [Ejercicio 2]
+- Definición de las entidades del dominio: EntidadBase, Genero, Editorial, Moneda, TipoCotizacion, CotizacionDolar, Libro, Precio, Stock.
+- Aplicación de encapsulamiento (atributos privados con `__`, properties con validación en los setters, incluidos `Moneda` y `TipoCotizacion`).
+- Relaciones por composición entre entidades (Libro-Genero, Libro-Editorial, Precio-Libro, Precio-Moneda, Stock-Libro, CotizacionDolar-TipoCotizacion).
+- Formato PEP8 y docstrings en todas las entidades.
+
 ## [Ejercicio 1]
 - Inicialización del repositorio.
 - Creación de la estructura de directorios del proyecto.

@@ -1,4 +1,9 @@
 # Changelog
+## [Ejercicio 5]
+
+- Creación del script `migrations/migrations.py` para la migración de datos.
+- Implementación de lectura dinámica de archivos CSV y generación automática de sentencias INSERT SQL en la carpeta correspondiente.
+
 ## [Ejercicio 4]
 - Creación de `models/models.py` con los modelos ORM de las 8 tablas: generos, editoriales, monedas, tipos_cotizacion, libros, precios, stock y cotizaciones_dolar.
 - Relaciones por clave foránea entre tablas (libro con género y editorial, precio con libro y moneda, stock con libro, cotización con tipo).

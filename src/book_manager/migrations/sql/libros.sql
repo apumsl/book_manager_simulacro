@@ -1,0 +1,10 @@
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (1, 9789500000001, 'El Principito', 'Antoine de Saint-Exupery', 8, 1);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (2, 9789500000002, 1984, 'George Orwell', 2, 2);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (3, 9789500000003, 'El Hobbit', 'JRR Tolkien', 3, 3);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (4, 9789500000004, 'It', 'Stephen King', 4, 4);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (5, 9789500000005, 'Sapiens', 'Yuval Noah Harari', 5, 5);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (6, 9789500000006, 'Steve Jobs', 'Walter Isaacson', 6, 6);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (7, 9789500000007, 'Veinte poemas de amor', 'Pablo Neruda', 7, 7);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (8, 9789500000008, 'Matilda', 'Roald Dahl', 8, 8);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (9, 9789500000009, 'Python para todos', 'Charles Severance', 9, 9);
+INSERT INTO libros (id, isbn, titulo, autor, genero_id, editorial_id) VALUES (10, 9789500000010, 'El arte de pensar', 'Rolf Dobelli', 10, 10);

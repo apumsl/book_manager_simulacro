@@ -317,7 +317,7 @@ class ServicioCotizacionDolar:
             cotizaciones_guardadas.append(cotizacion)
 
         return cotizaciones_guardadas
-    8
+    
     def __validar(self, cotizacion: CotizacionDolar) -> None:
         """Los valores deben ser positivos y compra no mayor a venta."""
         if cotizacion.valor_compra <= 0 or cotizacion.valor_venta <= 0:

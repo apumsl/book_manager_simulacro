@@ -1,4 +1,10 @@
 # Changelog
+## [Ejercicio 8]
+- Se agrega la opción de menú para obtener las cotizaciones mediante la API.
+- Se incorpora la visualización de la lista de precios bimonetaria de los libros, mostrando el precio en pesos y en la moneda seleccionada .
+- Se agrega la exportación de precios a archivo CSV para los distintos tipos de monedas disponibles.
+- Se modifica `book_manager/ui/console.py` para incorporar las nuevas opciones del menú.
+
 ## [Ejercicio 7]
 - Integración de la API de cotizaciones del dólar mediante la librería `requests`.
 - Incorporación de `python-dotenv` para cargar la URL de la API desde el archivo `.env`.

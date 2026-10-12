@@ -1,0 +1,10 @@
+INSERT INTO editoriales (id, nombre, sede) VALUES (1, 'Planeta', 'Buenos Aires');
+INSERT INTO editoriales (id, nombre, sede) VALUES (2, 'Sudamericana', 'Buenos Aires');
+INSERT INTO editoriales (id, nombre, sede) VALUES (3, 'Alfaguara', 'Madrid');
+INSERT INTO editoriales (id, nombre, sede) VALUES (4, 'Anagrama', 'Barcelona');
+INSERT INTO editoriales (id, nombre, sede) VALUES (5, 'Minotauro', 'Barcelona');
+INSERT INTO editoriales (id, nombre, sede) VALUES (6, 'Paidos', 'Buenos Aires');
+INSERT INTO editoriales (id, nombre, sede) VALUES (7, 'Salamandra', 'Barcelona');
+INSERT INTO editoriales (id, nombre, sede) VALUES (8, 'Losada', 'Buenos Aires');
+INSERT INTO editoriales (id, nombre, sede) VALUES (9, 'Kapelusz', 'Buenos Aires');
+INSERT INTO editoriales (id, nombre, sede) VALUES (10, 'Alianza', 'Madrid');

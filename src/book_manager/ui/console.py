@@ -1,3 +1,4 @@
+import csv
 from datetime import date, datetime
 from typing import Optional
 
@@ -706,6 +707,8 @@ class ConsolaUI:
             print("3. Buscar Precio por ID")
             print("4. Actualizar Precio (monto y fecha)")
             print("5. Eliminar Precio")
+            print("6. Ver Lista de Precios Bimonetaria")
+            print("7. Exportar Precios de Todas las Monedas a CSV")
             print("0. Volver")
 
             opcion = input("Seleccione: ")
@@ -800,7 +803,133 @@ class ConsolaUI:
                         print("No se encontró el precio.")
                 except ValueError as e:
                     print(f"Error: {e}")
+                    
+            elif opcion == '6':
+                tipos = self.svc_tipos_cotizacion.listar()
 
+                if not tipos:
+                    print("No hay tipos de cotización registrados.")
+                    continue
+
+                print("\nTipos de cotización disponibles:")
+                for tipo in tipos:
+                    print(f"{tipo.id}. {tipo.nombre}")
+
+                id_tipo = self._pedir_entero(
+                    "Ingrese ID del tipo de cotización: ")
+                if id_tipo is None:
+                    continue
+
+                cotizaciones = self.svc_cotizaciones.listar_historico(
+                    id_tipo)
+
+                if not cotizaciones:
+                    print("No hay cotizaciones para ese tipo.")
+                    continue
+
+                cotizacion = max(
+                    cotizaciones,
+                    key=lambda c: c.fecha)
+
+                precios = self.svc_precios.listar()
+
+                print("\n--- LISTA DE PRECIOS BIMONETARIA ---")
+                print(
+                    f"Cotización utilizada: "
+                    f"{cotizacion.tipo_cotizacion.nombre} "
+                    f"(${cotizacion.valor_venta:.2f})")
+                    
+                print("-" * 60)
+                print(f"{'Libro':<25} | {'Precio ARS':>15} | {'Precio USD':>10}")
+                print("-" * 60)
+
+                for precio in precios:
+                    if precio.moneda.codigo.upper() == 'ARS':
+                        precio_usd = (
+                            precio.monto / cotizacion.valor_venta)
+                        
+                        print(
+                           f"{precio.libro.titulo:<25} "
+                           f"| ARS: ${precio.monto:>10.2f} "
+                           f"| USD: {precio_usd:>8.2f}")
+
+            elif opcion == '7':
+                precios = self.svc_precios.listar()
+                tipos = self.svc_tipos_cotizacion.listar()
+
+                precios_ars = [
+                    precio for precio in precios
+                    if precio.moneda.codigo.upper() == 'ARS'
+                ]
+
+                if not precios_ars:
+                    print("No hay precios en pesos para exportar.")
+                    continue
+
+                cotizaciones_actuales = []
+
+                for tipo in tipos:
+                    cotizaciones = self.svc_cotizaciones.listar_historico(
+                        tipo.id)
+
+                    if cotizaciones:
+                        ultima = max(
+                            cotizaciones,
+                            key=lambda c: c.fecha)
+
+                        cotizaciones_actuales.append(ultima)
+
+                if not cotizaciones_actuales:
+                    print("No hay cotizaciones disponibles.")
+                    continue
+
+                nombre_archivo = (
+                    "book_manager/exports/"
+                    "precios_exportados.csv")
+
+                with open(
+                        nombre_archivo, 'w', newline='',
+                        encoding='utf-8-sig') as archivo:
+
+                    writer = csv.writer(
+                        archivo,
+                        delimiter=';'
+                    )
+
+                    encabezado = [
+                        'Libro',
+                        'Precio ARS'
+                    ]
+
+                    for cotizacion in cotizaciones_actuales:
+                        encabezado.append(
+                            f"{cotizacion.tipo_cotizacion.nombre} USD"
+                        )
+
+                    writer.writerow(encabezado)
+
+                    for precio in precios_ars:
+                        fila = [
+                            precio.libro.titulo,
+                            f"{precio.monto:.2f}"
+                        ]
+
+                        for cotizacion in cotizaciones_actuales:
+                            precio_usd = (
+                                precio.monto /
+                                cotizacion.valor_venta
+                            )
+
+                            fila.append(
+                                f"{precio_usd:.2f}"
+                            )
+
+                        writer.writerow(fila)
+
+                print(
+                    f"Precios exportados correctamente a "
+                    f"'{nombre_archivo}'.")
+            
             elif opcion == '0':
                 break
 
@@ -818,6 +947,7 @@ class ConsolaUI:
             print("3. Buscar por Tipo y Fecha")
             print("4. Actualizar Cotización (valores)")
             print("5. Eliminar Cotización")
+            print("6. Obtener Cotizaciones por API")
             print("0. Volver")
 
             opcion = input("Seleccione: ")
@@ -922,6 +1052,15 @@ class ConsolaUI:
                         print("Cotización eliminada.")
                     else:
                         print("No se encontró la cotización.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+                    
+            elif opcion == '6':
+                try:
+                    cotizaciones = self.svc_cotizaciones.obtener_cotizaciones()
+                    for c in cotizaciones:
+                        print(c)
+                    print("Cotizaciones obtenidas y registradas con éxito.")
                 except ValueError as e:
                     print(f"Error: {e}")
 

@@ -1,0 +1,10 @@
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (1, 1, 1, 15000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (2, 2, 1, 18000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (3, 3, 1, 22000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (4, 4, 1, 25000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (5, 5, 1, 21000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (6, 6, 1, 24000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (7, 7, 1, 14000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (8, 8, 1, 16000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (9, 9, 1, 30000, '2026-09-01');
+INSERT INTO precios (id, libro_id, moneda_id, monto, fecha_vigencia) VALUES (10, 10, 1, 19000, '2026-09-01');

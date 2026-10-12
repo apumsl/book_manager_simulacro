@@ -1,4 +1,10 @@
 # Changelog
+## [Ejercicio 4]
+- Creación de `models/models.py` con los modelos ORM de las 8 tablas: generos, editoriales, monedas, tipos_cotizacion, libros, precios, stock y cotizaciones_dolar.
+- Relaciones por clave foránea entre tablas (libro con género y editorial, precio con libro y moneda, stock con libro, cotización con tipo).
+- Restricciones en la base: ISBN y código de moneda únicos, un stock por libro, una cotización por tipo y fecha, montos positivos, stock no negativo y compra no mayor a venta.
+- Función `crear_tablas()` y se agrega `psycopg2-binary` a `requirements.txt` para conectar con PostgreSQL (Supabase).
+
 ## [Ejercicio 3]
 - Se agrega a `ConexionDB` el context manager `transaccion()`, que abre una sesión de SQLAlchemy, hace commit si el bloque termina bien y rollback si ocurre un error, y siempre cierra la sesión.
 

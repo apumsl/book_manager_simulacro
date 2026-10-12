@@ -1,4 +1,13 @@
 # Changelog
+## [Ejercicio 7]
+- Integración de la API de cotizaciones del dólar mediante la librería `requests`.
+- Incorporación de `python-dotenv` para cargar la URL de la API desde el archivo `.env`.
+- Implementación del método `obtener_cotizaciones()` en `ServicioCotizacionDolar` para consultar y descargar las cotizaciones.
+- Registro de las cotizaciones obtenidas en la base de datos mediante `RepositorioCotizacionDolar`.
+- Búsqueda de tipos de cotización existentes y creación automática cuando no se encuentran registrados.
+- Actualización de cotizaciones existentes para evitar duplicados por tipo y fecha.
+- Modificación de `main.py` para inyectar `RepositorioTipoCotizacion` en `ServicioCotizacionDolar`.
+- Se agregan `requests` y `python-dotenv` a `requirements.txt`.
 
 ## [Ejercicio 6]
 - Redefinicion de `repositories.py` para mapear entidades a modelos usando SQLAlchemy y `ConexionDB`.

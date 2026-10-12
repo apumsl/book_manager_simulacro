@@ -1,7 +1,13 @@
 """Servicios con la lógica de negocio de Book Manager."""
-
-from datetime import date
+import os
+import requests
+from datetime import date,datetime
 from typing import Generic, List, Optional, TypeVar
+from dotenv import load_dotenv
+
+
+
+load_dotenv()
 
 from book_manager.entities.entities import (
     CotizacionDolar,
@@ -224,8 +230,10 @@ class ServicioStock:
 class ServicioCotizacionDolar:
     """Reglas de negocio de las cotizaciones del dólar."""
 
-    def __init__(self, repositorio: IRepositorioCotizacionDolar) -> None:
+    def __init__(self, repositorio: IRepositorioCotizacionDolar,
+                 repo_tipos: IRepositorio[TipoCotizacion]) -> None:
         self.__repositorio = repositorio
+        self.__repo_tipos = repo_tipos
 
     def crear(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
         """Valida las reglas de negocio y crea la cotización."""
@@ -250,7 +258,66 @@ class ServicioCotizacionDolar:
     def eliminar(self, tipo_id: int, fecha: date) -> bool:
         """Elimina una cotización según su tipo y fecha."""
         return self.__repositorio.eliminar(tipo_id, fecha)
+    
+    def obtener_cotizaciones(self) -> List[CotizacionDolar]:
+        """Obtiene las cotizaciones de la API y las guarda en la BD."""
+        api_url = os.getenv('API_URL')
+        if not api_url:
+            raise ValueError('No se encontró API_URL en el archivo .env')
 
+        try:
+            respuesta = requests.get(api_url, timeout=10)
+            respuesta.raise_for_status()
+        except requests.RequestException as error:
+            raise ValueError(
+                f'Error al consultar la API del dólar: {error}') from error
+
+        datos = respuesta.json()
+        cotizaciones_guardadas = []
+        tipos = self.__repo_tipos.leer_todos()
+        siguiente_id = max((tipo.id for tipo in tipos), default=0) + 1
+
+        for dato in datos:
+            tipo = next(
+                (t for t in tipos
+                 if t.nombre.lower() == dato['nombre'].lower()),
+                None)
+
+            if tipo is None:
+                tipo = TipoCotizacion(
+                    id=siguiente_id,
+                    nombre=dato['nombre'])
+                tipo = self.__repo_tipos.crear(tipo)
+                tipos.append(tipo)
+                siguiente_id += 1
+
+            fecha = datetime.fromisoformat(
+                dato['fechaActualizacion'].replace('Z', '+00:00')).date()
+
+            existente = self.__repositorio.leer_por_tipo_y_fecha(
+                tipo.id, fecha)
+
+            if existente:
+                cotizacion = CotizacionDolar(
+                    id=existente.id,
+                    tipo_cotizacion=tipo,
+                    fecha=fecha,
+                    valor_compra=float(dato['compra']),
+                    valor_venta=float(dato['venta']))
+                cotizacion = self.actualizar(cotizacion)
+            else:
+                cotizacion = CotizacionDolar(
+                    id=0,
+                    tipo_cotizacion=tipo,
+                    fecha=fecha,
+                    valor_compra=float(dato['compra']),
+                    valor_venta=float(dato['venta']))
+                cotizacion = self.crear(cotizacion)
+
+            cotizaciones_guardadas.append(cotizacion)
+
+        return cotizaciones_guardadas
+    8
     def __validar(self, cotizacion: CotizacionDolar) -> None:
         """Los valores deben ser positivos y compra no mayor a venta."""
         if cotizacion.valor_compra <= 0 or cotizacion.valor_venta <= 0:

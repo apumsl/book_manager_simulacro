@@ -88,7 +88,7 @@ def main(import_default_data=False):
     svc_monedas = ServicioMoneda(repo_monedas, repo_precios)
     svc_tipos = ServicioTipoCotizacion(repo_tipos, repo_cotizaciones)
     svc_precios = ServicioPrecio(repo_precios)
-    svc_cotizaciones = ServicioCotizacionDolar(repo_cotizaciones)
+    svc_cotizaciones = ServicioCotizacionDolar(repo_cotizaciones, repo_tipos)
 
     # 6. Consola
     app = ConsolaUI(

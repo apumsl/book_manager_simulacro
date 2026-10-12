@@ -2,6 +2,6 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-CLAUDE.md
 *.ipynb
 src/book_manager/data/
+*.db

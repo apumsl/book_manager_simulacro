@@ -1,4 +1,11 @@
 # Changelog
+
+## [Ejercicio 6]
+- Redefinicion de `repositories.py` para mapear entidades a modelos usando SQLAlchemy y `ConexionDB`.
+- Eliminación del archivo `almacen_csv.py` y la carpeta `preload_data` por quedar obsoletos.
+- Modificación de `main.py` para inyectar la conexión a la base de datos a todos los repositorios y crear la base de datos `book_managerDB` si se ejecuta por primera vez.
+- Implementación de carga automática de datos iniciales mediante la ejecución de los scripts `.sql` migrados en el ejercicio 5 en el primer arranque.
+
 ## [Ejercicio 5]
 
 - Creación del script `migrations/migrations.py` para la migración de datos.

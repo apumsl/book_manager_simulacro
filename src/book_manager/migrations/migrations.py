@@ -7,8 +7,10 @@ def migrar_datos(carpeta_csvs: str, carpeta_sqls: str) -> None:
     Se encarga de leer los archivos csv y crear los archivos sql
     para la inserción en la base de datos.
     Args:
-        carpeta_csvs (str): Carpeta donde se encuentran los archivos csv de origen.
-        carpeta_sqls (str): Carpeta donde se deben guardar los archivos sql generados.
+        carpeta_csvs (str): Carpeta donde se encuentran los archivos csv
+            de origen.
+        carpeta_sqls (str): Carpeta donde se deben guardar los archivos
+            sql generados.
     """
 
     os.makedirs(carpeta_sqls, exist_ok=True)
@@ -41,7 +43,7 @@ def migrar_datos(carpeta_csvs: str, carpeta_sqls: str) -> None:
                     else:
                         try:
                             float(valor)
-                            # Evita convertir fechas YYYY-MM-DD a floats erróneos
+                            # Evita tratar fechas YYYY-MM-DD como números
                             if "-" in valor and len(valor) >= 8:
                                 raise ValueError
                             valores.append(valor)
@@ -50,13 +52,15 @@ def migrar_datos(carpeta_csvs: str, carpeta_sqls: str) -> None:
                             valores.append(f"'{valor_escapado}'")
 
                 valores_str = ", ".join(valores)
-                sentencia = f"INSERT INTO {nombre_tabla} ({columnas_str}) VALUES ({valores_str});\n"
+                sentencia = (f"INSERT INTO {nombre_tabla} ({columnas_str}) "
+                             f"VALUES ({valores_str});\n")
                 sentencias.append(sentencia)
 
         with open(ruta_sql, mode='w', encoding='utf-8') as f_out:
             f_out.writelines(sentencias)
         print(
-            f"Archivo generado: {ruta_sql} ({len(sentencias)} registros para la tabla '{nombre_tabla}').")
+            f"Archivo generado: {ruta_sql} ({len(sentencias)} registros "
+            f"para la tabla '{nombre_tabla}').")
 
 
 if __name__ == "__main__":

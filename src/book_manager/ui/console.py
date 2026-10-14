@@ -841,7 +841,8 @@ class ConsolaUI:
                     f"(${cotizacion.valor_venta:.2f})")
 
                 print("-" * 60)
-                print(f"{'Libro':<25} | {'Precio ARS':>15} | {'Precio USD':>10}")
+                print(f"{'Libro':<25} | {'Precio ARS':>15} | "
+                      f"{'Precio USD':>10}")
                 print("-" * 60)
 
                 for precio in precios:

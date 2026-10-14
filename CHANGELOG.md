@@ -1,5 +1,9 @@
 # Changelog
 
+#### [Corrección estilo]
+- Se corrigieron las líneas de más de 79 caracteres para cumplir con PEP 8.
+- No hay cambios de comportamiento: solo estilo y tipado.
+
 ## [Conexión a Supabase]
 ### Agregado
 - Base de datos PostgreSQL alojada en Supabase, configurada mediante la variable `DATABASE_URL`.

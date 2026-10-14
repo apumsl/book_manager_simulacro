@@ -4,6 +4,7 @@ Para ejecutarlo, desde la carpeta src: python -m book_manager.main
 """
 import os
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 from book_manager.database.connection import ConexionDB
 from book_manager.models.models import crear_tablas
 from book_manager.repositories.repositories import (
@@ -16,11 +17,38 @@ from book_manager.services.services import (
     ServicioTipoCotizacion)
 from book_manager.ui.console import ConsolaUI
 
+
+def base_vacia(conexion: ConexionDB) -> bool:
+    """Indica si la base de datos todavía no tiene datos cargados."""
+    with conexion.transaccion() as sesion:
+        cantidad = sesion.execute(
+            text('SELECT COUNT(*) FROM generos')).scalar()
+    return cantidad == 0
+
+
+TABLAS = [
+    'generos', 'editoriales', 'monedas', 'tipos_cotizacion',
+    'libros', 'precios', 'stock', 'cotizaciones_dolar'
+]
+
+
+def sincronizar_secuencias(sesion: Session) -> None:
+    """Ajusta los contadores de id de PostgreSQL tras insertar con id fijo.
+
+    Sin este ajuste, el primer alta sin id intentaría usar el 1 y chocaría
+    con los registros cargados desde los scripts SQL.
+    """
+    for tabla in TABLAS:
+        sesion.execute(text(
+            f"SELECT setval(pg_get_serial_sequence('{tabla}', 'id'), "
+            f"COALESCE(MAX(id), 0) + 1, false) FROM {tabla}"))
+
+
 def ejecutar_scripts_sql(conexion: ConexionDB) -> None:
     """Ejecuta los scripts SQL generados para poblar la base de datos."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     sql_dir = os.path.join(base_dir, 'migrations', 'sql')
-    
+
     # El orden es estricto para no violar las restricciones de clave foránea
     orden_archivos = [
         'generos.sql',
@@ -34,7 +62,8 @@ def ejecutar_scripts_sql(conexion: ConexionDB) -> None:
     ]
 
     if not os.path.exists(sql_dir):
-        print("Aviso: No se encontró la carpeta de migraciones SQL. Iniciando BD vacía.")
+        print("Aviso: No se encontró la carpeta de migraciones SQL. "
+              "Iniciando BD vacía.")
         return
 
     with conexion.transaccion() as sesion:
@@ -45,29 +74,33 @@ def ejecutar_scripts_sql(conexion: ConexionDB) -> None:
                     for linea in f:
                         sql = linea.strip()
                         if sql:
-                            # Parche: Corregir desfasaje entre nombre del CSV y modelo SQLAlchemy
+                            # Parche: corregir el desfasaje entre el nombre
+                            # del CSV y el de la tabla del modelo
                             if archivo == 'cotizaciones.sql':
-                                sql = sql.replace('INSERT INTO cotizaciones (', 'INSERT INTO cotizaciones_dolar (')
-                            
+                                sql = sql.replace(
+                                    'INSERT INTO cotizaciones (',
+                                    'INSERT INTO cotizaciones_dolar (')
+
                             sesion.execute(text(sql))
 
-def main(import_default_data=False):
-    """Arma repositorios y servicios, y arranca la consola."""
-    
-    # 1. Configuración de la base de datos local
-    db_path = os.path.join(os.path.dirname(__file__), 'book_manager.db')
-    
-    # Comprobamos si es la primera vez que se levanta el programa
-    primera_vez = not os.path.exists(db_path)
+        sincronizar_secuencias(sesion)
 
-    conexion = ConexionDB(f"sqlite:///{db_path}", echo=False)
+
+def main(import_default_data: bool = False) -> None:
+    """Arma repositorios y servicios, y arranca la consola."""
+    url = os.getenv('DATABASE_URL')
+    if not url:
+        raise ValueError('No se encontró DATABASE_URL en el archivo .env')
+
+    # 1. Conexión a la base de datos
+    conexion = ConexionDB(url, echo=False)
 
     # 2. Asegurar que las tablas existan
     crear_tablas(conexion)
 
-    # 3. Precarga: solo la primera vez si se solicita importar datos
-    if import_default_data and primera_vez:
-        print("Primera ejecución detectada: Poblando la base de datos con scripts SQL...")
+    # 3. Precarga: solo si se solicita y la base está vacía
+    if import_default_data and base_vacia(conexion):
+        print('Base vacía: poblando con scripts SQL...')
         ejecutar_scripts_sql(conexion)
 
     # 4. Repositorios
@@ -94,11 +127,12 @@ def main(import_default_data=False):
     app = ConsolaUI(
         svc_generos, svc_editoriales, svc_libros, svc_stock,
         svc_monedas, svc_tipos, svc_precios, svc_cotizaciones)
-    
+
     try:
         app.iniciar()
     finally:
         conexion.cerrar()
+
 
 if __name__ == "__main__":
     main(import_default_data=True)

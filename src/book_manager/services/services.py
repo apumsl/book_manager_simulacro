@@ -1,14 +1,9 @@
 """Servicios con la lógica de negocio de Book Manager."""
-import os
-import requests
-from datetime import date,datetime
-from typing import Generic, List, Optional, TypeVar
-from dotenv import load_dotenv
-
-
-
-load_dotenv()
-
+from book_manager.repositories.repositories import (
+    IRepositorio,
+    IRepositorioCotizacionDolar,
+    IRepositorioStock,
+)
 from book_manager.entities.entities import (
     CotizacionDolar,
     EntidadBase,
@@ -20,11 +15,15 @@ from book_manager.entities.entities import (
     Stock,
     TipoCotizacion,
 )
-from book_manager.repositories.repositories import (
-    IRepositorio,
-    IRepositorioCotizacionDolar,
-    IRepositorioStock,
-)
+import os
+import requests
+from datetime import date, datetime
+from typing import Generic, List, Optional, TypeVar
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
 
 T = TypeVar('T', bound=EntidadBase)
 
@@ -258,7 +257,7 @@ class ServicioCotizacionDolar:
     def eliminar(self, tipo_id: int, fecha: date) -> bool:
         """Elimina una cotización según su tipo y fecha."""
         return self.__repositorio.eliminar(tipo_id, fecha)
-    
+
     def obtener_cotizaciones(self) -> List[CotizacionDolar]:
         """Obtiene las cotizaciones de la API y las guarda en la BD."""
         api_url = os.getenv('API_URL')
@@ -277,10 +276,17 @@ class ServicioCotizacionDolar:
         tipos = self.__repo_tipos.leer_todos()
         siguiente_id = max((tipo.id for tipo in tipos), default=0) + 1
 
+        equivalencias = {
+            'bolsa': 'mep',
+            'contado con liquidación': 'ccl'
+        }
+
         for dato in datos:
+            nombre_api = dato['nombre'].lower()
+            nombre_tipo = equivalencias.get(nombre_api, nombre_api)
             tipo = next(
                 (t for t in tipos
-                 if t.nombre.lower() == dato['nombre'].lower()),
+                 if t.nombre.lower() == nombre_tipo),
                 None)
 
             if tipo is None:
@@ -304,6 +310,7 @@ class ServicioCotizacionDolar:
                     fecha=fecha,
                     valor_compra=float(dato['compra']),
                     valor_venta=float(dato['venta']))
+
                 cotizacion = self.actualizar(cotizacion)
             else:
                 cotizacion = CotizacionDolar(
@@ -312,12 +319,13 @@ class ServicioCotizacionDolar:
                     fecha=fecha,
                     valor_compra=float(dato['compra']),
                     valor_venta=float(dato['venta']))
+
                 cotizacion = self.crear(cotizacion)
 
             cotizaciones_guardadas.append(cotizacion)
 
         return cotizaciones_guardadas
-    
+
     def __validar(self, cotizacion: CotizacionDolar) -> None:
         """Los valores deben ser positivos y compra no mayor a venta."""
         if cotizacion.valor_compra <= 0 or cotizacion.valor_venta <= 0:

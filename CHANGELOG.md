@@ -1,4 +1,16 @@
 # Changelog
+
+## [Conexión a Supabase]
+### Agregado
+- Base de datos PostgreSQL alojada en Supabase, configurada mediante la variable `DATABASE_URL`.
+- Rol `book_app` con permisos de `SELECT`, `INSERT`, `UPDATE` y`DELETE` sobre las tablas del sistema.
+- Función `sincronizar_secuencias` para ajustar los contadores de ID luego de la precarga de datos.
+### Cambiado
+- `main.py` utiliza `DATABASE_URL` para establecer la conexión.
+- La precarga mediante scripts SQL se ejecuta solamente cuando la base de datos está vacía.
+### Dependencias
+- `psycopg2-binary` como controlador para PostgreSQL.
+
 ## [Ejercicio 8]
 - Se agrega la opción de menú para obtener las cotizaciones mediante la API.
 - Se incorpora la visualización de la lista de precios bimonetaria de los libros, mostrando el precio en pesos y en la moneda seleccionada .

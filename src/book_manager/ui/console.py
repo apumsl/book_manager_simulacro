@@ -1,3 +1,4 @@
+import os
 import csv
 from datetime import date, datetime
 from typing import Optional
@@ -803,7 +804,7 @@ class ConsolaUI:
                         print("No se encontró el precio.")
                 except ValueError as e:
                     print(f"Error: {e}")
-                    
+
             elif opcion == '6':
                 tipos = self.svc_tipos_cotizacion.listar()
 
@@ -838,7 +839,7 @@ class ConsolaUI:
                     f"Cotización utilizada: "
                     f"{cotizacion.tipo_cotizacion.nombre} "
                     f"(${cotizacion.valor_venta:.2f})")
-                    
+
                 print("-" * 60)
                 print(f"{'Libro':<25} | {'Precio ARS':>15} | {'Precio USD':>10}")
                 print("-" * 60)
@@ -847,11 +848,11 @@ class ConsolaUI:
                     if precio.moneda.codigo.upper() == 'ARS':
                         precio_usd = (
                             precio.monto / cotizacion.valor_venta)
-                        
+
                         print(
-                           f"{precio.libro.titulo:<25} "
-                           f"| ARS: ${precio.monto:>10.2f} "
-                           f"| USD: {precio_usd:>8.2f}")
+                            f"{precio.libro.titulo:<25} "
+                            f"| ARS: ${precio.monto:>10.2f} "
+                            f"| USD: {precio_usd:>8.2f}")
 
             elif opcion == '7':
                 precios = self.svc_precios.listar()
@@ -883,9 +884,13 @@ class ConsolaUI:
                     print("No hay cotizaciones disponibles.")
                     continue
 
-                nombre_archivo = (
-                    "book_manager/exports/"
-                    "precios_exportados.csv")
+                base_dir = os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__)))
+
+                nombre_archivo = os.path.join(
+                    base_dir, "exports", "precios_exportados.csv"
+
+                )
 
                 with open(
                         nombre_archivo, 'w', newline='',
@@ -929,7 +934,7 @@ class ConsolaUI:
                 print(
                     f"Precios exportados correctamente a "
                     f"'{nombre_archivo}'.")
-            
+
             elif opcion == '0':
                 break
 
@@ -983,9 +988,17 @@ class ConsolaUI:
 
             elif opcion == '2':
                 hay_cotizaciones = False
-                for t in self.svc_tipos_cotizacion.listar():
-                    for c in self.svc_cotizaciones.listar_historico(t.id):
-                        print(c)
+
+                for tipo in self.svc_tipos_cotizacion.listar():
+                    cotizaciones = self.svc_cotizaciones.listar_historico(
+                        tipo.id)
+
+                    if cotizaciones:
+                        ultima = max(
+                            cotizaciones,
+                            key=lambda c: c.fecha
+                        )
+                        print(ultima)
                         hay_cotizaciones = True
                 if not hay_cotizaciones:
                     print("No hay cotizaciones registradas.")
@@ -1054,7 +1067,7 @@ class ConsolaUI:
                         print("No se encontró la cotización.")
                 except ValueError as e:
                     print(f"Error: {e}")
-                    
+
             elif opcion == '6':
                 try:
                     cotizaciones = self.svc_cotizaciones.obtener_cotizaciones()

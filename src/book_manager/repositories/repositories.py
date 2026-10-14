@@ -68,19 +68,20 @@ class RepositorioGenericoDB(IRepositorio[T], Generic[T, M]):
         with self.conexion.transaccion() as sesion:
             if getattr(entidad, 'id', None) and sesion.query(self.modelo).filter_by(id=entidad.id).first():
                 raise ValueError(f"Ya existe una entidad con id {entidad.id}")
-            
+
             kwargs = self._a_modelo_kwargs(entidad)
             if getattr(entidad, 'id', None):
                 kwargs['id'] = entidad.id
-                
+
             nuevo = self.modelo(**kwargs)
             sesion.add(nuevo)
             sesion.flush()
             nuevo_id = nuevo.id
-            
+
         # Refresca con relaciones completas
         with self.conexion.transaccion() as sesion:
-            modelo_completo = self._query_base(sesion).filter_by(id=nuevo_id).one()
+            modelo_completo = self._query_base(
+                sesion).filter_by(id=nuevo_id).one()
             return self._a_entidad(modelo_completo)
 
     def leer_por_id(self, id: int) -> Optional[T]:
@@ -97,15 +98,17 @@ class RepositorioGenericoDB(IRepositorio[T], Generic[T, M]):
         with self.conexion.transaccion() as sesion:
             modelo = sesion.query(self.modelo).filter_by(id=entidad.id).first()
             if not modelo:
-                raise ValueError(f"No existe una entidad con id {entidad.id} para actualizar")
-            
+                raise ValueError(
+                    f"No existe una entidad con id {entidad.id} para actualizar")
+
             kwargs = self._a_modelo_kwargs(entidad)
             for key, value in kwargs.items():
                 setattr(modelo, key, value)
             sesion.flush()
-            
+
         with self.conexion.transaccion() as sesion:
-            modelo_completo = self._query_base(sesion).filter_by(id=entidad.id).one()
+            modelo_completo = self._query_base(
+                sesion).filter_by(id=entidad.id).one()
             return self._a_entidad(modelo_completo)
 
     def eliminar(self, id: int) -> bool:
@@ -173,13 +176,14 @@ class RepositorioLibro(RepositorioGenericoDB[Libro, LibroModelo]):
 
     def _a_entidad(self, modelo: LibroModelo) -> Libro:
         genero = Genero(id=modelo.genero.id, nombre=modelo.genero.nombre)
-        editorial = Editorial(id=modelo.editorial.id, nombre=modelo.editorial.nombre, sede=modelo.editorial.sede)
+        editorial = Editorial(
+            id=modelo.editorial.id, nombre=modelo.editorial.nombre, sede=modelo.editorial.sede)
         return Libro(id=modelo.id, isbn=modelo.isbn, titulo=modelo.titulo, autor=modelo.autor, genero=genero, editorial=editorial)
 
     def _a_modelo_kwargs(self, entidad: Libro) -> dict:
         return {
-            'isbn': entidad.isbn, 'titulo': entidad.titulo, 
-            'autor': entidad.autor, 'genero_id': entidad.genero.id, 
+            'isbn': entidad.isbn, 'titulo': entidad.titulo,
+            'autor': entidad.autor, 'genero_id': entidad.genero.id,
             'editorial_id': entidad.editorial.id
         }
 
@@ -196,15 +200,19 @@ class RepositorioPrecio(RepositorioGenericoDB[Precio, PrecioModelo]):
         )
 
     def _a_entidad(self, modelo: PrecioModelo) -> Precio:
-        genero = Genero(id=modelo.libro.genero.id, nombre=modelo.libro.genero.nombre)
-        editorial = Editorial(id=modelo.libro.editorial.id, nombre=modelo.libro.editorial.nombre, sede=modelo.libro.editorial.sede)
-        libro = Libro(id=modelo.libro.id, isbn=modelo.libro.isbn, titulo=modelo.libro.titulo, autor=modelo.libro.autor, genero=genero, editorial=editorial)
-        moneda = Moneda(id=modelo.moneda.id, codigo=modelo.moneda.codigo, nombre=modelo.moneda.nombre)
+        genero = Genero(id=modelo.libro.genero.id,
+                        nombre=modelo.libro.genero.nombre)
+        editorial = Editorial(id=modelo.libro.editorial.id,
+                              nombre=modelo.libro.editorial.nombre, sede=modelo.libro.editorial.sede)
+        libro = Libro(id=modelo.libro.id, isbn=modelo.libro.isbn, titulo=modelo.libro.titulo,
+                      autor=modelo.libro.autor, genero=genero, editorial=editorial)
+        moneda = Moneda(id=modelo.moneda.id,
+                        codigo=modelo.moneda.codigo, nombre=modelo.moneda.nombre)
         return Precio(id=modelo.id, libro=libro, moneda=moneda, monto=float(modelo.monto), fecha_vigencia=modelo.fecha_vigencia)
 
     def _a_modelo_kwargs(self, entidad: Precio) -> dict:
         return {
-            'libro_id': entidad.libro.id, 'moneda_id': entidad.moneda.id, 
+            'libro_id': entidad.libro.id, 'moneda_id': entidad.moneda.id,
             'monto': entidad.monto, 'fecha_vigencia': entidad.fecha_vigencia
         }
 
@@ -238,44 +246,53 @@ class RepositorioStock(IRepositorioStock):
         )
 
     def _a_entidad(self, modelo: StockModelo) -> Stock:
-        genero = Genero(id=modelo.libro.genero.id, nombre=modelo.libro.genero.nombre)
-        editorial = Editorial(id=modelo.libro.editorial.id, nombre=modelo.libro.editorial.nombre, sede=modelo.libro.editorial.sede)
-        libro = Libro(id=modelo.libro.id, isbn=modelo.libro.isbn, titulo=modelo.libro.titulo, autor=modelo.libro.autor, genero=genero, editorial=editorial)
+        genero = Genero(id=modelo.libro.genero.id,
+                        nombre=modelo.libro.genero.nombre)
+        editorial = Editorial(id=modelo.libro.editorial.id,
+                              nombre=modelo.libro.editorial.nombre, sede=modelo.libro.editorial.sede)
+        libro = Libro(id=modelo.libro.id, isbn=modelo.libro.isbn, titulo=modelo.libro.titulo,
+                      autor=modelo.libro.autor, genero=genero, editorial=editorial)
         return Stock(id=modelo.id, libro=libro, cantidad=modelo.cantidad)
 
     def crear(self, stock: Stock) -> Stock:
         with self.conexion.transaccion() as sesion:
             if sesion.query(StockModelo).filter_by(libro_id=stock.libro.id).first():
-                raise ValueError(f"Ya existe stock para el libro {stock.libro.id}")
-            nuevo = StockModelo(libro_id=stock.libro.id, cantidad=stock.cantidad)
+                raise ValueError(
+                    f"Ya existe stock para el libro {stock.libro.id}")
+            nuevo = StockModelo(libro_id=stock.libro.id,
+                                cantidad=stock.cantidad)
             if getattr(stock, 'id', None):
                 nuevo.id = stock.id
             sesion.add(nuevo)
             sesion.flush()
             nuevo_id = nuevo.id
-            
+
         with self.conexion.transaccion() as sesion:
             return self._a_entidad(self._query_base(sesion).filter_by(id=nuevo_id).one())
 
     def leer_por_libro(self, libro_id: int) -> Optional[Stock]:
         with self.conexion.transaccion() as sesion:
-            modelo = self._query_base(sesion).filter_by(libro_id=libro_id).first()
+            modelo = self._query_base(sesion).filter_by(
+                libro_id=libro_id).first()
             return self._a_entidad(modelo) if modelo else None
 
     def actualizar(self, stock: Stock) -> Stock:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(StockModelo).filter_by(libro_id=stock.libro.id).first()
+            modelo = sesion.query(StockModelo).filter_by(
+                libro_id=stock.libro.id).first()
             if not modelo:
-                raise ValueError(f"No existe stock para libro {stock.libro.id} que se pueda actualizar")
+                raise ValueError(
+                    f"No existe stock para libro {stock.libro.id} que se pueda actualizar")
             modelo.cantidad = stock.cantidad
             sesion.flush()
-            
+
         with self.conexion.transaccion() as sesion:
             return self._a_entidad(self._query_base(sesion).filter_by(libro_id=stock.libro.id).one())
 
     def eliminar(self, libro_id: int) -> bool:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(StockModelo).filter_by(libro_id=libro_id).first()
+            modelo = sesion.query(StockModelo).filter_by(
+                libro_id=libro_id).first()
             if modelo:
                 sesion.delete(modelo)
                 return True
@@ -312,16 +329,18 @@ class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
         return sesion.query(CotizacionDolarModelo).options(joinedload(CotizacionDolarModelo.tipo_cotizacion))
 
     def _a_entidad(self, modelo: CotizacionDolarModelo) -> CotizacionDolar:
-        tipo = TipoCotizacion(id=modelo.tipo_cotizacion.id, nombre=modelo.tipo_cotizacion.nombre)
+        tipo = TipoCotizacion(id=modelo.tipo_cotizacion.id,
+                              nombre=modelo.tipo_cotizacion.nombre)
         return CotizacionDolar(
-            id=modelo.id, tipo_cotizacion=tipo, fecha=modelo.fecha, 
+            id=modelo.id, tipo_cotizacion=tipo, fecha=modelo.fecha,
             valor_compra=float(modelo.valor_compra), valor_venta=float(modelo.valor_venta)
         )
 
     def crear(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
         with self.conexion.transaccion() as sesion:
             if sesion.query(CotizacionDolarModelo).filter_by(tipo_cotizacion_id=cotizacion.tipo_cotizacion.id, fecha=cotizacion.fecha).first():
-                raise ValueError("Ya existe una cotización para ese tipo de dolar y fecha")
+                raise ValueError(
+                    "Ya existe una cotización para ese tipo de dolar y fecha")
             nuevo = CotizacionDolarModelo(
                 tipo_cotizacion_id=cotizacion.tipo_cotizacion.id,
                 fecha=cotizacion.fecha, valor_compra=cotizacion.valor_compra, valor_venta=cotizacion.valor_venta
@@ -331,35 +350,40 @@ class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
             sesion.add(nuevo)
             sesion.flush()
             nuevo_id = nuevo.id
-            
+
         with self.conexion.transaccion() as sesion:
             return self._a_entidad(self._query_base(sesion).filter_by(id=nuevo_id).one())
 
     def leer_por_tipo_y_fecha(self, tipo_id: int, fecha: datetime.date) -> Optional[CotizacionDolar]:
         with self.conexion.transaccion() as sesion:
-            modelo = self._query_base(sesion).filter_by(tipo_cotizacion_id=tipo_id, fecha=fecha).first()
+            modelo = self._query_base(sesion).filter_by(
+                tipo_cotizacion_id=tipo_id, fecha=fecha).first()
             return self._a_entidad(modelo) if modelo else None
 
     def leer_historico_por_tipo(self, tipo_id: int) -> List[CotizacionDolar]:
         with self.conexion.transaccion() as sesion:
-            modelos = self._query_base(sesion).filter_by(tipo_cotizacion_id=tipo_id).all()
+            modelos = self._query_base(sesion).filter_by(
+                tipo_cotizacion_id=tipo_id).all()
             return [self._a_entidad(m) for m in modelos]
 
     def actualizar(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(CotizacionDolarModelo).filter_by(tipo_cotizacion_id=cotizacion.tipo_cotizacion.id, fecha=cotizacion.fecha).first()
+            modelo = sesion.query(CotizacionDolarModelo).filter_by(
+                tipo_cotizacion_id=cotizacion.tipo_cotizacion.id, fecha=cotizacion.fecha).first()
             if not modelo:
-                raise ValueError("No existe una cotización para ese tipo de dólar en esa fecha para actualizar")
+                raise ValueError(
+                    "No existe una cotización para ese tipo de dólar en esa fecha para actualizar")
             modelo.valor_compra = cotizacion.valor_compra
             modelo.valor_venta = cotizacion.valor_venta
             sesion.flush()
-            
+
         with self.conexion.transaccion() as sesion:
             return self._a_entidad(self._query_base(sesion).filter_by(tipo_cotizacion_id=cotizacion.tipo_cotizacion.id, fecha=cotizacion.fecha).one())
 
     def eliminar(self, tipo_id: int, fecha: datetime.date) -> bool:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(CotizacionDolarModelo).filter_by(tipo_cotizacion_id=tipo_id, fecha=fecha).first()
+            modelo = sesion.query(CotizacionDolarModelo).filter_by(
+                tipo_cotizacion_id=tipo_id, fecha=fecha).first()
             if modelo:
                 sesion.delete(modelo)
                 return True

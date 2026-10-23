@@ -5,3 +5,11 @@ __pycache__/
 *.ipynb
 src/book_manager/data/
 *.db
+
+# Salidas generadas por la aplicación
+src/book_manager/exports/
+src/book_manager/reportes/*
+!src/book_manager/reportes/.gitkeep
+
+# Caché de Scrapy
+.scrapy/

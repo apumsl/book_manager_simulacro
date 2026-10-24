@@ -1,5 +1,12 @@
 # Changelog
 
+## [Ejercicio 3]
+- Se implementó `CuspideSpider` con Scrapy.
+- El scraper obtiene los libros directamente desde la base de datos.
+- Se procesan los primeros 10 resultados por título.
+- Se extraen precio, imagen, formas de pago y descripción.
+- Se implementaron Loaders y Pipelines para procesar los datos.
+
 ## [Ejercicio 2]
 - Se crea la función `cargar_sql` en `migrations/migrations.py`, que ejecuta las sentencias de un archivo SQL dentro de una sesión. Admite sentencias en varias líneas, ignora comentarios y escapa los `:` para que SQLAlchemy no los interprete como parámetros.
 - Se crea `cargar_scripts_sql`, que carga todos los scripts de precarga en una única transacción, respetando el orden de las claves foráneas y validando antes que no falte ningún archivo.

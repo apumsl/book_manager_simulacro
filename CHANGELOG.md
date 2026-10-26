@@ -1,5 +1,11 @@
 # Changelog
 
+## [Ejercicio 4]
+- Se crea `ServicioAlertasPrecio` en `services.py`, que compara el precio interno en pesos de cada libro con el precio web obtenido por el scraper.
+- La diferencia en pesos se ingresa en cada ejecución: con `scrapy crawl cuspide -a diferencia=5000` o, si no se indica, el spider la pide por consola. Se valida que sea un número mayor a cero.
+- Para cada libro se compara contra el resultado web con el mismo título o, si no hay, contra uno cuyo título empiece igual (por ejemplo, "El Principito (tapa dura)"). Si ninguno coincide, el libro no se compara, para no generar alertas con libros distintos, y se informa en el log.
+- Se agrega `AlertasPreciosPipeline`, que al terminar cada ejecución genera en `reportes/` un CSV nuevo (`alertas_precios_AAAA-MM-DD_HHMMSS.csv`) con los libros cuya diferencia supera el monto ingresado.
+
 ## [Ejercicio 3]
 - Se implementó `CuspideSpider` con Scrapy.
 - El scraper obtiene los libros directamente desde la base de datos.

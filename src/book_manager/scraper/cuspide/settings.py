@@ -13,6 +13,7 @@ ITEM_PIPELINES = {
     'cuspide.pipelines.ValidacionPipeline': 100,
     'cuspide.pipelines.FormasPagoPipeline': 200,
     'cuspide.pipelines.ExportarJsonPipeline': 300,
+    'cuspide.pipelines.AlertasPreciosPipeline': 400,
 }
 
 CUSPIDE_SALIDA = str(Path(__file__).resolve().parents[2]

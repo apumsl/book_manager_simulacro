@@ -81,3 +81,43 @@ class ExportarJsonPipeline:
                       default=str)
         logger.info('%d ítems guardados en %s',
                     len(self.items), self.ruta_salida)
+
+
+class AlertasPreciosPipeline:
+    """Compara precio interno y precio web y genera el CSV de alertas.
+
+    Usa la diferencia que ingresó el usuario al lanzar el spider y crea
+    un archivo nuevo en reportes/ en cada ejecución.
+    """
+
+    def __init__(self, crawler: Crawler) -> None:
+        """Inicializa el pipeline guardando el crawler en ejecución."""
+        self.crawler = crawler
+        self.items: list[dict[str, Any]] = []
+
+    @classmethod
+    def from_crawler(cls, crawler: Crawler) -> 'AlertasPreciosPipeline':
+        """Crea el pipeline a partir del crawler."""
+        return cls(crawler)
+
+    def open_spider(self) -> None:
+        """Vacía la lista de ítems al iniciar la ejecución."""
+        self.items = []
+
+    def process_item(self, item: Any) -> Any:
+        """Acumula el ítem para compararlo al finalizar."""
+        self.items.append(ItemAdapter(item).asdict())
+        return item
+
+    def close_spider(self) -> None:
+        """Genera las alertas y las exporta a CSV."""
+        spider = self.crawler.spider
+        servicio = spider.servicio_alertas
+        alertas = servicio.generar_alertas(
+            spider.libros, self.items, spider.diferencia)
+        ruta = servicio.exportar_csv(alertas)
+        logger.info('%d alertas (diferencia mayor a $%s) guardadas en %s',
+                    len(alertas), spider.diferencia, ruta)
+        if servicio.sin_coincidencia:
+            logger.info('Sin resultado con el mismo título (no se '
+                        'comparan): %s', ', '.join(servicio.sin_coincidencia))

@@ -15,10 +15,16 @@ from book_manager.entities.entities import (
     Stock,
     TipoCotizacion,
 )
+import csv
 import os
-import requests
+import re
+import unicodedata
 from datetime import date, datetime
-from typing import Generic, List, Optional, TypeVar
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
+
+import requests
 from dotenv import load_dotenv
 
 
@@ -334,3 +340,166 @@ class ServicioCotizacionDolar:
         if cotizacion.valor_compra > cotizacion.valor_venta:
             raise ValueError('El valor de compra no puede ser mayor '
                              'al de venta')
+
+
+CAMPOS_ALERTA: List[str] = [
+    'libro_id', 'libro', 'precio_interno', 'precio_web', 'diferencia',
+    'umbral', 'situacion', 'criterio', 'titulo_web', 'url',
+    'fecha_extraccion',
+]
+
+
+class ServicioAlertasPrecio:
+    """Compara el precio interno de cada libro con el precio web.
+
+    Genera una alerta cuando la diferencia, en valor absoluto, supera el
+    monto en pesos que ingresa el usuario antes de ejecutar el scraper.
+    """
+
+    def __init__(self, repo_precios: IRepositorio[Precio],
+                 carpeta_reportes: Path) -> None:
+        self.__repo_precios: IRepositorio[Precio] = repo_precios
+        self.__carpeta_reportes: Path = Path(carpeta_reportes)
+
+    @staticmethod
+    def validar_diferencia(valor: Any) -> Decimal:
+        """Convierte el monto ingresado por el usuario en un Decimal.
+
+        Acepta '5000', '5000.50' o '5.000,50'.
+
+        Raises:
+            ValueError: Si el valor no es un número mayor a cero.
+        """
+        texto = str(valor).replace('$', '').replace(' ', '').strip()
+        if ',' in texto:
+            texto = texto.replace('.', '').replace(',', '.')
+        try:
+            monto = Decimal(texto)
+        except InvalidOperation:
+            raise ValueError(
+                f'La diferencia "{valor}" no es un número válido') from None
+        if monto <= 0:
+            raise ValueError('La diferencia debe ser mayor a cero')
+        return monto
+
+    def precios_internos_ars(self) -> Dict[int, Decimal]:
+        """Devuelve el precio en pesos vigente de cada libro.
+
+        Si un libro tiene varios precios en ARS, toma el de fecha de
+        vigencia más reciente.
+
+        Returns:
+            Dict[int, Decimal]: Precio interno indexado por id de libro.
+        """
+        vigentes: Dict[int, Precio] = {}
+        for precio in self.__repo_precios.leer_todos():
+            if precio.moneda.codigo != 'ARS':
+                continue
+            actual = vigentes.get(precio.libro.id)
+            if actual is None or precio.fecha_vigencia > actual.fecha_vigencia:
+                vigentes[precio.libro.id] = precio
+        return {libro_id: Decimal(str(precio.monto))
+                for libro_id, precio in vigentes.items()}
+
+    @staticmethod
+    def _normalizar_titulo(titulo: Any) -> str:
+        """Pasa el título a minúsculas, sin tildes ni signos de puntuación."""
+        texto = unicodedata.normalize('NFKD', str(titulo or ''))
+        texto = ''.join(c for c in texto if not unicodedata.combining(c))
+        texto = re.sub(r'[^a-z0-9 ]', ' ', texto.lower())
+        return ' '.join(texto.split())
+
+    @classmethod
+    def elegir_resultado(cls, titulo: str, resultados: List[Dict[str, Any]]
+                         ) -> Tuple[Optional[Dict[str, Any]], str]:
+        """Elige contra qué resultado web comparar un libro.
+
+        Primero busca un resultado con el mismo título; si no hay, uno cuyo
+        título empiece con el del catálogo, como palabras completas (por
+        ejemplo, 'El Principito (tapa dura)'). Si ninguno coincide, no
+        compara, para no alertar con un libro distinto.
+
+        Returns:
+            Tuple: El resultado elegido (o None) y el criterio usado.
+        """
+        buscado = cls._normalizar_titulo(titulo)
+        ordenados = sorted(resultados,
+                           key=lambda r: r.get('posicion') or 0)
+        titulos = [(r, cls._normalizar_titulo(r.get('titulo_web')))
+                   for r in ordenados]
+        for resultado, titulo_web in titulos:
+            if titulo_web == buscado:
+                return resultado, 'título exacto'
+        for resultado, titulo_web in titulos:
+            if buscado and f'{titulo_web} '.startswith(f'{buscado} '):
+                return resultado, 'título ampliado'
+        return None, 'sin coincidencia'
+
+    def generar_alertas(self, libros: List[Dict[str, Any]],
+                        resultados: List[Dict[str, Any]],
+                        diferencia: Decimal) -> List[Dict[str, Any]]:
+        """Compara precio interno y precio web y arma las alertas.
+
+        Args:
+            libros: Libros del catálogo (id, titulo y precio_interno).
+            resultados: Ítems obtenidos por el scraper.
+            diferencia: Monto en pesos a partir del cual se alerta.
+
+        Returns:
+            List[Dict[str, Any]]: Una alerta por cada libro que supera
+            la diferencia.
+        """
+        self.sin_coincidencia: List[str] = []
+        por_libro: Dict[int, List[Dict[str, Any]]] = {}
+        for resultado in resultados:
+            por_libro.setdefault(resultado.get('libro_id'), []).append(
+                resultado)
+
+        alertas: List[Dict[str, Any]] = []
+        for libro in libros:
+            precio_interno = libro.get('precio_interno')
+            if precio_interno is None:
+                continue
+            elegido, criterio = self.elegir_resultado(
+                libro['titulo'], por_libro.get(libro['id'], []))
+            if elegido is None or elegido.get('precio') is None:
+                self.sin_coincidencia.append(libro['titulo'])
+                continue
+            precio_web = Decimal(str(elegido['precio']))
+            delta = precio_web - precio_interno
+            if abs(delta) <= diferencia:
+                continue
+            alertas.append({
+                'libro_id': libro['id'],
+                'libro': libro['titulo'],
+                'precio_interno': f'{precio_interno:.2f}',
+                'precio_web': f'{precio_web:.2f}',
+                'diferencia': f'{delta:.2f}',
+                'umbral': f'{diferencia:.2f}',
+                'situacion': ('web más cara' if delta > 0
+                              else 'web más barata'),
+                'criterio': criterio,
+                'titulo_web': elegido.get('titulo_web', ''),
+                'url': elegido.get('url', ''),
+                'fecha_extraccion': elegido.get('fecha_extraccion', ''),
+            })
+        return alertas
+
+    def exportar_csv(self, alertas: List[Dict[str, Any]]) -> Path:
+        """Escribe las alertas en un CSV nuevo dentro de reportes/.
+
+        El nombre lleva fecha y hora para que cada ejecución genere su
+        propio archivo. Se crea aunque no haya alertas.
+
+        Returns:
+            Path: Ruta del archivo generado.
+        """
+        self.__carpeta_reportes.mkdir(parents=True, exist_ok=True)
+        marca = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+        ruta = self.__carpeta_reportes / f'alertas_precios_{marca}.csv'
+        with open(ruta, 'w', encoding='utf-8-sig', newline='') as archivo:
+            escritor = csv.DictWriter(archivo, fieldnames=CAMPOS_ALERTA,
+                                      delimiter=';')
+            escritor.writeheader()
+            escritor.writerows(alertas)
+        return ruta

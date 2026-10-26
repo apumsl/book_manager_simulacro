@@ -2,7 +2,8 @@
 import json
 import os
 from datetime import datetime
-from typing import Any, AsyncIterator, Iterator
+from pathlib import Path
+from typing import Any, AsyncIterator, Iterator, Optional
 from urllib.parse import urlencode
 
 import scrapy
@@ -15,7 +16,10 @@ from book_manager.repositories.repositories import (
     RepositorioPrecio,
     RepositorioStock,
 )
-from book_manager.services.services import ServicioLibro
+from book_manager.services.services import (
+    ServicioAlertasPrecio,
+    ServicioLibro,
+)
 
 from cuspide.items import CuspideItem, CuspideLoader
 
@@ -33,6 +37,7 @@ SELECTOR_SINOPSIS = (
     "/following-sibling::*[1]//text()"
 )
 SELECTOR_JSON_LD = "script[type='application/ld+json']::text"
+CARPETA_REPORTES = Path(__file__).resolve().parents[3] / 'reportes'
 
 
 class CuspideSpider(scrapy.Spider):
@@ -61,10 +66,23 @@ class CuspideSpider(scrapy.Spider):
     def __init__(
         self,
         *args: Any,
+        diferencia: Optional[str] = None,
         **kwargs: Any
     ) -> None:
-        """Carga desde la base de datos los libros del catálogo."""
+        """Pide la diferencia de precios y carga los libros del catálogo.
+
+        Args:
+            diferencia: Monto en pesos a partir del cual se genera una
+                alerta. Se puede pasar con ``-a diferencia=5000``; si no
+                se pasa, se le pide al usuario por consola.
+        """
         super().__init__(*args, **kwargs)
+
+        if diferencia is None:
+            diferencia = input(
+                'Diferencia de precio en pesos para generar alertas: ')
+        self.diferencia = ServicioAlertasPrecio.validar_diferencia(
+            diferencia)
 
         load_dotenv()
 
@@ -89,11 +107,18 @@ class CuspideSpider(scrapy.Spider):
 
         libros = servicio_libros.listar()
 
+        self.servicio_alertas = ServicioAlertasPrecio(
+            repo_precios,
+            CARPETA_REPORTES
+        )
+        precios_internos = self.servicio_alertas.precios_internos_ars()
+
         self.libros = [
             {
                 'id': libro.id,
                 'titulo': libro.titulo,
-                'isbn': libro.isbn
+                'isbn': libro.isbn,
+                'precio_interno': precios_internos.get(libro.id)
             }
             for libro in libros
         ]

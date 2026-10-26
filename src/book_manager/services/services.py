@@ -16,6 +16,7 @@ from book_manager.entities.entities import (
     TipoCotizacion,
 )
 import csv
+import json
 import os
 import re
 import unicodedata
@@ -26,6 +27,8 @@ from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
 import requests
 from dotenv import load_dotenv
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 
 
 load_dotenv()
@@ -503,3 +506,128 @@ class ServicioAlertasPrecio:
             escritor.writeheader()
             escritor.writerows(alertas)
         return ruta
+
+
+CARPETA_REPORTES: Path = Path(__file__).resolve().parents[1] / 'reportes'
+COLUMNAS_REPORTE: List[Tuple[str, int]] = [
+    ('Libro', 32), ('Precio interno', 16), ('Precio web', 16),
+    ('Diferencia', 16), ('Fecha de extracción', 22), ('Coincidencia', 18),
+]
+
+
+class ServicioReportePrecios:
+    """Genera el reporte Excel que compara precio interno y precio web.
+
+    Toma los resultados de la última ejecución del scraper
+    (resultados_cuspide.json) y arma una fila por cada libro del catálogo.
+    """
+
+    def __init__(self, repo_libros: IRepositorio[Libro],
+                 servicio_alertas: ServicioAlertasPrecio,
+                 carpeta_reportes: Path = CARPETA_REPORTES) -> None:
+        self.__repo_libros: IRepositorio[Libro] = repo_libros
+        self.__servicio_alertas: ServicioAlertasPrecio = servicio_alertas
+        self.__carpeta_reportes: Path = Path(carpeta_reportes)
+
+    def leer_resultados_scraper(self) -> List[Dict[str, Any]]:
+        """Lee los ítems guardados por la última ejecución del scraper.
+
+        Raises:
+            FileNotFoundError: Si todavía no se ejecutó el scraper.
+        """
+        ruta = self.__carpeta_reportes / 'resultados_cuspide.json'
+        if not ruta.exists():
+            raise FileNotFoundError(
+                'No hay resultados del scraper. Ejecute primero el '
+                'scraping de Cúspide.')
+        with open(ruta, encoding='utf-8') as archivo:
+            return json.load(archivo)
+
+    def generar_filas(self, resultados: List[Dict[str, Any]]
+                      ) -> List[Dict[str, Any]]:
+        """Arma una fila del reporte por cada libro del catálogo.
+
+        Si el libro no tiene un resultado web con el mismo título, la fila
+        queda sin precio web ni diferencia.
+        """
+        precios_internos = self.__servicio_alertas.precios_internos_ars()
+        por_libro: Dict[int, List[Dict[str, Any]]] = {}
+        for resultado in resultados:
+            por_libro.setdefault(resultado.get('libro_id'), []).append(
+                resultado)
+
+        filas: List[Dict[str, Any]] = []
+        libros = sorted(self.__repo_libros.leer_todos(),
+                        key=lambda libro: libro.id)
+        for libro in libros:
+            interno = precios_internos.get(libro.id)
+            elegido, criterio = self.__servicio_alertas.elegir_resultado(
+                libro.titulo, por_libro.get(libro.id, []))
+            web = None
+            fecha = None
+            if elegido is not None and elegido.get('precio') is not None:
+                web = Decimal(str(elegido['precio']))
+                fecha = elegido.get('fecha_extraccion')
+            diferencia = (web - interno
+                          if web is not None and interno is not None
+                          else None)
+            filas.append({
+                'libro': libro.titulo,
+                'precio_interno': interno,
+                'precio_web': web,
+                'diferencia': diferencia,
+                'fecha_extraccion': (datetime.fromisoformat(fecha)
+                                     if fecha else None),
+                'coincidencia': criterio,
+            })
+        return filas
+
+    def exportar_excel(self, filas: List[Dict[str, Any]]) -> Path:
+        """Escribe las filas en un archivo .xlsx nuevo dentro de reportes/.
+
+        Returns:
+            Path: Ruta del archivo generado.
+        """
+        libro_excel = Workbook()
+        hoja = libro_excel.active
+        hoja.title = 'Precios'
+        hoja.append([nombre for nombre, _ in COLUMNAS_REPORTE])
+        relleno = PatternFill('solid', fgColor='D9E2F3')
+        for indice, (_, ancho) in enumerate(COLUMNAS_REPORTE, start=1):
+            celda = hoja.cell(row=1, column=indice)
+            celda.font = Font(bold=True)
+            celda.fill = relleno
+            letra = celda.column_letter
+            hoja.column_dimensions[letra].width = ancho
+
+        for fila in filas:
+            hoja.append([
+                fila['libro'],
+                fila['precio_interno'],
+                fila['precio_web'],
+                fila['diferencia'],
+                fila['fecha_extraccion'],
+                fila['coincidencia'],
+            ])
+
+        for numero in range(2, hoja.max_row + 1):
+            for columna in ('B', 'C', 'D'):
+                hoja[f'{columna}{numero}'].number_format = '"$" #,##0.00'
+            hoja[f'E{numero}'].number_format = 'dd/mm/yyyy hh:mm'
+        hoja.freeze_panes = 'A2'
+        hoja.auto_filter.ref = hoja.dimensions
+
+        self.__carpeta_reportes.mkdir(parents=True, exist_ok=True)
+        marca = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+        ruta = self.__carpeta_reportes / f'reporte_precios_{marca}.xlsx'
+        libro_excel.save(ruta)
+        return ruta
+
+    def generar_reporte(self) -> Path:
+        """Genera el reporte Excel con los últimos resultados del scraper.
+
+        Returns:
+            Path: Ruta del archivo .xlsx generado.
+        """
+        filas = self.generar_filas(self.leer_resultados_scraper())
+        return self.exportar_excel(filas)

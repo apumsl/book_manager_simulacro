@@ -1,5 +1,12 @@
 # Changelog
 
+## [Ejercicio 5]
+- Se crea `ServicioReportePrecios` en `services.py`, que genera un reporte Excel con los resultados de la última ejecución del scraper (`reportes/resultados_cuspide.json`).
+- El reporte tiene una fila por cada libro del catálogo con: libro, precio interno, precio web, diferencia (web − interno), fecha de extracción y el criterio de coincidencia usado.
+- Se reutiliza la búsqueda del resultado web del Ejercicio 4; si un libro no tiene coincidencia, queda sin precio web ni diferencia.
+- Cada reporte se guarda en `reportes/` con fecha y hora en el nombre (`reporte_precios_AAAA-MM-DD_HHMMSS.xlsx`). Si todavía no se ejecutó el scraper, se informa con un error claro.
+- Se agrega `openpyxl` a `requirements.txt`.
+
 ## [Ejercicio 4]
 - Se crea `ServicioAlertasPrecio` en `services.py`, que compara el precio interno en pesos de cada libro con el precio web obtenido por el scraper.
 - La diferencia en pesos se ingresa en cada ejecución: con `scrapy crawl cuspide -a diferencia=5000` o, si no se indica, el spider la pide por consola. Se valida que sea un número mayor a cero.

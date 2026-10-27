@@ -1,5 +1,14 @@
 # Changelog
 
+#### [Ejercicio 7]
+- Se integraron al menú principal las opciones para ejecutar el scraping, generar el reporte Excel y consultar el historial de auditoría.
+- Se conectaron estas opciones con los servicios correspondientes del sistema.
+- "Ejecutar scraping" valida la diferencia antes de lanzar el scraper, reduce el log a advertencias, informa la ruta del CSV de alertas y como descargarlo en Colab.
+- "Generar reporte" informa si todavía no se ejecutó el scraping, sin interrumpir el programa, y indica como descargar el Excel.
+- El historial de auditoría se obtiene mediante `ServicioAuditoria`.
+- Se auditan la ejecución del scraping y la generación del reporte; el detalle registra la ruta del archivo generado.
+- Se elimina `scraper/cuspide/middlewares.py`, plantilla de Scrapy sin uso en el proyecto.
+
 ## [Ejercicio 6]
 - Se implementa la clase `Auditoria` en `models.py` heredando de `Base` para mapear las columnas `id`, `accion`, `fecha` y `detalles`.
 - Se crea el decorador `@auditar` en `decorators.py` para registrar las operaciones de escritura. Incluye manejo de excepciones (`try/except`) y abre su propia sesión a la base de datos para garantizar que los fallos de auditoría no interrumpan la operación principal del usuario.

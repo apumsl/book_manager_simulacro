@@ -9,11 +9,11 @@ from book_manager.models.models import crear_tablas
 from book_manager.repositories.repositories import (
     RepositorioCotizacionDolar, RepositorioEditorial, RepositorioGenero,
     RepositorioLibro, RepositorioMoneda, RepositorioPrecio,
-    RepositorioStock, RepositorioTipoCotizacion)
+    RepositorioStock, RepositorioTipoCotizacion,RepositorioAuditoria)
 from book_manager.services.services import (
     ServicioCotizacionDolar, ServicioEditorial, ServicioGenero,
     ServicioLibro, ServicioMoneda, ServicioPrecio, ServicioStock,
-    ServicioTipoCotizacion)
+    ServicioTipoCotizacion,ServicioAlertasPrecio,ServicioReportePrecios,CARPETA_REPORTES,ServicioAuditoria)
 from book_manager.ui.console import ConsolaUI
 from book_manager.migrations.migrations import cargar_scripts_sql
 
@@ -62,12 +62,15 @@ def main(import_default_data: bool = False) -> None:
     svc_tipos = ServicioTipoCotizacion(repo_tipos, repo_cotizaciones)
     svc_precios = ServicioPrecio(repo_precios)
     svc_cotizaciones = ServicioCotizacionDolar(repo_cotizaciones, repo_tipos)
+    svc_alertas = ServicioAlertasPrecio(repo_precios, CARPETA_REPORTES)
+    svc_reporte = ServicioReportePrecios(repo_libros, svc_alertas)
+    svc_auditoria = ServicioAuditoria(RepositorioAuditoria(conexion))
 
     # 6. Consola
     app = ConsolaUI(
         svc_generos, svc_editoriales, svc_libros, svc_stock,
-        svc_monedas, svc_tipos, svc_precios, svc_cotizaciones)
-
+        svc_monedas, svc_tipos, svc_precios, svc_cotizaciones, conexion,
+        svc_reporte, svc_auditoria)
     try:
         app.iniciar()
     finally:

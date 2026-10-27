@@ -38,11 +38,18 @@ def _leer_previo(repositorio: Any, args: tuple) -> Optional[Any]:
 
 def _detalles(resultado: Any, previo: Any, args: tuple,
               kwargs: dict) -> str:
-    """Arma el texto de detalles con el resultado o los argumentos."""
+    """Arma el texto de detalles con el resultado o los argumentos.
+
+    Prioriza los datos de la entidad devuelta; si se eliminó, los de la
+    entidad previa; si la operación devolvió otro valor (por ejemplo, la
+    ruta de un archivo generado), lo registra junto con los argumentos.
+    """
     if hasattr(resultado, '__dict__'):
         return str(_a_dict(resultado))
     if previo is not None:
         return str(_a_dict(previo))
+    if resultado is not None and not isinstance(resultado, bool):
+        return f'Args: {args} | Resultado: {resultado}'
     return f'Args: {args} | Kwargs: {kwargs}'
 
 

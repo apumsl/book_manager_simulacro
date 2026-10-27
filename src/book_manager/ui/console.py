@@ -1,15 +1,27 @@
-import os
 import csv
+import os
+import subprocess
+import sys
 from datetime import date, datetime
+from decimal import Decimal
+from pathlib import Path
 from typing import Optional
 
+from book_manager.database.connection import ConexionDB
+from book_manager.database.decorators import auditar
 from book_manager.entities.entities import (
     CotizacionDolar, Editorial, Genero, Libro, Moneda, Precio, Stock,
     TipoCotizacion)
 from book_manager.services.services import (
+    CARPETA_REPORTES, ServicioAlertasPrecio, ServicioAuditoria,
     ServicioCotizacionDolar, ServicioEditorial, ServicioGenero,
-    ServicioLibro, ServicioMoneda, ServicioPrecio, ServicioStock,
-    ServicioTipoCotizacion)
+    ServicioLibro, ServicioMoneda, ServicioPrecio, ServicioReportePrecios,
+    ServicioStock, ServicioTipoCotizacion)
+
+CARPETA_SRC = Path(__file__).resolve().parents[2]
+CARPETA_SCRAPER = Path(__file__).resolve().parents[1] / 'scraper'
+AVISO_DESCARGA = ('En Colab se descarga desde el panel Archivos: carpeta '
+                  'reportes, clic derecho sobre el archivo y "Descargar".')
 
 
 class ConsolaUI:
@@ -22,7 +34,10 @@ class ConsolaUI:
                  svc_monedas: ServicioMoneda,
                  svc_tipos_cotizacion: ServicioTipoCotizacion,
                  svc_precios: ServicioPrecio,
-                 svc_cotizaciones: ServicioCotizacionDolar) -> None:
+                 svc_cotizaciones: ServicioCotizacionDolar,
+                 conexion: ConexionDB,
+                 svc_reporte: ServicioReportePrecios,
+                 svc_auditoria: ServicioAuditoria) -> None:
         self.svc_generos = svc_generos
         self.svc_editoriales = svc_editoriales
         self.svc_libros = svc_libros
@@ -31,6 +46,9 @@ class ConsolaUI:
         self.svc_tipos_cotizacion = svc_tipos_cotizacion
         self.svc_precios = svc_precios
         self.svc_cotizaciones = svc_cotizaciones
+        self.conexion = conexion
+        self.svc_reporte = svc_reporte
+        self.svc_auditoria = svc_auditoria
 
     def _pedir_entero(self, mensaje: str) -> Optional[int]:
         """Pide un número entero por consola.
@@ -110,6 +128,9 @@ class ConsolaUI:
             print("6. Gestionar Tipos de Cotización")
             print("7. Gestionar Precios")
             print("8. Gestionar Cotización del Dólar")
+            print("9. Ejecutar scraping")
+            print("10. Generar reporte")
+            print("11. Ver historial de auditoría")
             print("0. Salir")
 
             opcion = input("Seleccione una opción: ")
@@ -130,6 +151,12 @@ class ConsolaUI:
                 self.menu_precios()
             elif opcion == '8':
                 self.menu_cotizaciones()
+            elif opcion == '9':
+                self.ejecutar_scraping()
+            elif opcion == '10':
+                self.generar_reporte()
+            elif opcion == '11':
+                self.ver_historial_auditoria()
             elif opcion == '0':
                 print("Saliendo del sistema...")
                 break
@@ -1083,3 +1110,82 @@ class ConsolaUI:
 
             else:
                 print("Opción no válida.")
+
+    # ==========================================
+    # EJECUCION DEL SCRAPING
+    # ==========================================
+    def ejecutar_scraping(self) -> None:
+        """Pide la diferencia de precios y ejecuta el scraper de Cúspide.
+
+        La diferencia se valida antes de lanzar el scraper. Al terminar,
+        informa la ruta del CSV de alertas y como descargarlo en Colab.
+        """
+        texto = input('Ingrese la diferencia de precio en pesos para '
+                      'generar alertas: ')
+        try:
+            diferencia = ServicioAlertasPrecio.validar_diferencia(texto)
+        except ValueError as error:
+            print(f'Error: {error}')
+            return
+        print('Ejecutando el scraping de Cúspide. Puede demorar varios '
+              'minutos...')
+        try:
+            ruta = self._lanzar_scraper(diferencia)
+        except (subprocess.CalledProcessError, FileNotFoundError) as error:
+            print(f'Error al ejecutar el scraper: {error}')
+            return
+        print(f'Scraping finalizado. Alertas guardadas en: {ruta}')
+        print(AVISO_DESCARGA)
+        
+    @auditar(accion='EJECUTAR_SCRAPING')
+    def _lanzar_scraper(self, diferencia: Decimal) -> Path:
+        """Ejecuta el spider en un proceso aparte y devuelve el CSV generado.
+
+        Se usa un subproceso porque Scrapy no puede ejecutarse dos veces en
+        el mismo proceso. El PYTHONPATH incluye src para que el spider
+        pueda importar book_manager.
+
+        Raises:
+            subprocess.CalledProcessError: Si el scraper termina con error.
+            FileNotFoundError: Si no se generó el CSV de alertas.
+        """
+        entorno = os.environ.copy()
+        entorno['PYTHONPATH'] = os.pathsep.join(
+            filter(None, [str(CARPETA_SRC), entorno.get('PYTHONPATH')]))
+        comando = [sys.executable, '-m', 'scrapy', 'crawl', 'cuspide',
+                   '-a', f'diferencia={diferencia}', '-L', 'WARNING']
+        subprocess.run(comando, cwd=CARPETA_SCRAPER, env=entorno, check=True)
+        alertas = sorted(CARPETA_REPORTES.glob('alertas_precios_*.csv'),
+                         key=lambda archivo: archivo.stat().st_mtime)
+        if not alertas:
+            raise FileNotFoundError('El scraper no generó el CSV de alertas')
+        return alertas[-1]
+
+    def generar_reporte(self) -> None:
+        """Genera el reporte Excel con los últimos resultados del scraper."""
+        try:
+            ruta = self._crear_reporte()
+        except (ValueError, FileNotFoundError) as error:
+            print(f'Error: {error}')
+            return
+        print(f'Reporte generado correctamente en: {ruta}')
+        print(AVISO_DESCARGA)
+
+    @auditar(accion='GENERAR_REPORTE')
+    def _crear_reporte(self) -> Path:
+        """Crea el reporte Excel y devuelve su ruta."""
+        return self.svc_reporte.generar_reporte()
+
+    def ver_historial_auditoria(self) -> None:
+        """Muestra la auditoría, del registro más reciente al más antiguo."""
+        registros = self.svc_auditoria.listar()
+        if not registros:
+            print('\nNo hay registros de auditoría.')
+            return
+        print(f'\n--- HISTORIAL DE AUDITORÍA ({len(registros)}) ---')
+        for registro in registros:
+            print('-' * 60)
+            print(f'ID: {registro.id}')
+            print(f'Acción: {registro.accion}')
+            print(f'Fecha: {registro.fecha:%d/%m/%Y %H:%M:%S}')
+            print(f'Detalles: {registro.detalles}')

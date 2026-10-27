@@ -12,7 +12,6 @@ from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 import requests
 from dotenv import load_dotenv
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill
 
 from book_manager.entities.entities import (
     Auditoria,
@@ -555,4 +554,86 @@ class ServicioReportePrecios:
             carpeta_reportes: Ruta de la carpeta de reportes (por defecto CARPETA_REPORTES).
         """
         self.__repo_libros: IRepositorio[Libro] = repo_libros
-        self.__servicio_alertas: ServicioAlertas
+        self.__servicio_alertas: ServicioAlertasPrecio = servicio_alertas
+        self.__carpeta_reportes: Path = Path(carpeta_reportes)
+
+    def generar_reporte(self) -> Path:
+        """Genera un Excel comparando precios internos y web."""
+
+        ruta_json = self.__carpeta_reportes / 'resultados_cuspide.json'
+
+        if not ruta_json.exists():
+            raise ValueError(
+                'No existe resultados_cuspide.json. '
+                'Ejecute primero el scraper.'
+            )
+
+        with open(ruta_json, 'r', encoding='utf-8') as archivo:
+            resultados = json.load(archivo)
+
+        precios_internos = self.__servicio_alertas.precios_internos_ars()
+
+        por_libro: Dict[int, List[Dict[str, Any]]] = {}
+
+        for resultado in resultados:
+            libro_id = resultado.get('libro_id')
+
+            if libro_id is not None:
+                por_libro.setdefault(libro_id, []).append(resultado)
+
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja.title = 'Comparación de precios'
+
+        hoja.append([
+            'Libro',
+            'Precio interno',
+            'Precio web',
+            'Diferencia',
+            'Fecha de extracción',
+            'Coincidencia'
+        ])
+
+        for libro in self.__repo_libros.leer_todos():
+            precio_interno = precios_internos.get(libro.id)
+
+            resultado, criterio= self.__servicio_alertas.elegir_resultado(
+                libro.titulo,
+                por_libro.get(libro.id, [])
+            )
+
+            precio_web = None
+            diferencia = None
+            fecha_extraccion = None
+
+            if resultado and resultado.get('precio') is not None:
+                precio_web = Decimal(str(resultado['precio']))
+                fecha_extraccion = resultado.get('fecha_extraccion')
+
+                if precio_interno is not None:
+                    diferencia = precio_web - precio_interno
+
+            hoja.append([
+                libro.titulo,
+                float(precio_interno)
+                if precio_interno is not None else None,
+                float(precio_web)
+                if precio_web is not None else None,
+                float(diferencia)
+                if diferencia is not None else None,
+                fecha_extraccion,
+                criterio
+            ])
+
+        self.__carpeta_reportes.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        ruta = (
+            self.__carpeta_reportes
+            / 'reporte_precios.xlsx'
+        )
+        workbook.save(ruta)
+
+        return ruta

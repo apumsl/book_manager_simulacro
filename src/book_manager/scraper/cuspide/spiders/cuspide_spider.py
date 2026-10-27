@@ -19,6 +19,7 @@ from book_manager.repositories.repositories import (
 from book_manager.services.services import (
     ServicioAlertasPrecio,
     ServicioLibro,
+    CARPETA_REPORTES,
 )
 
 from cuspide.items import CuspideItem, CuspideLoader
@@ -37,7 +38,7 @@ SELECTOR_SINOPSIS = (
     "/following-sibling::*[1]//text()"
 )
 SELECTOR_JSON_LD = "script[type='application/ld+json']::text"
-CARPETA_REPORTES = Path(__file__).resolve().parents[3] / 'reportes'
+# CARPETA_REPORTES = Path(__file__).resolve().parents[3] / 'reportes'
 
 
 class CuspideSpider(scrapy.Spider):

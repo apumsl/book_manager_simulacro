@@ -1,6 +1,7 @@
 """ Entidades de dominio de Book Manager."""
 
-from datetime import date
+from datetime import date, datetime
+from typing import Optional
 
 
 class EntidadBase:
@@ -298,3 +299,46 @@ class Stock(EntidadBase):
     def __str__(self) -> str:
         return (f'Stock(id={self.id}, libro={self.__libro.titulo}, '
                 f'cantidad={self.__cantidad})')
+
+
+class Auditoria(EntidadBase):
+    """Registro de una operación realizada en el sistema.
+
+    Guarda qué acción se ejecutó, cuándo y con qué datos.
+    """
+
+    def __init__(self, id: int, accion: str, fecha: Optional[datetime],
+                 detalles: str) -> None:
+        super().__init__(id)
+        self.__accion: str = accion
+        self.__fecha: Optional[datetime] = fecha
+        self.__detalles: str = detalles
+
+    @property
+    def accion(self) -> str:
+        """Nombre de la acción registrada, por ejemplo 'CREAR_LIBRO'."""
+        return self.__accion
+
+    @accion.setter
+    def accion(self, valor: str) -> None:
+        if not valor.strip():
+            raise ValueError('La acción de auditoría no puede estar vacía')
+        self.__accion = valor
+
+    @property
+    def fecha(self) -> Optional[datetime]:
+        """Fecha y hora de la operación (solo lectura)."""
+        return self.__fecha
+
+    @property
+    def detalles(self) -> str:
+        """Datos de la entidad o de los argumentos de la operación."""
+        return self.__detalles
+
+    @detalles.setter
+    def detalles(self, valor: str) -> None:
+        self.__detalles = valor
+
+    def __str__(self) -> str:
+        return (f'Auditoria(id={self.id}, accion={self.__accion}, '
+                f'fecha={self.__fecha})')

@@ -1,20 +1,4 @@
 """Servicios con la lógica de negocio de Book Manager."""
-from book_manager.repositories.repositories import (
-    IRepositorio,
-    IRepositorioCotizacionDolar,
-    IRepositorioStock,
-)
-from book_manager.entities.entities import (
-    CotizacionDolar,
-    EntidadBase,
-    Editorial,
-    Genero,
-    Libro,
-    Moneda,
-    Precio,
-    Stock,
-    TipoCotizacion,
-)
 import csv
 import json
 import os
@@ -30,9 +14,25 @@ from dotenv import load_dotenv
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
+from book_manager.entities.entities import (
+    Auditoria,
+    CotizacionDolar,
+    EntidadBase,
+    Editorial,
+    Genero,
+    Libro,
+    Moneda,
+    Precio,
+    Stock,
+    TipoCotizacion,
+)
+from book_manager.repositories.repositories import (
+    IRepositorio,
+    IRepositorioCotizacionDolar,
+    IRepositorioStock,
+)
 
 load_dotenv()
-
 
 T = TypeVar('T', bound=EntidadBase)
 
@@ -345,6 +345,21 @@ class ServicioCotizacionDolar:
                              'al de venta')
 
 
+class ServicioAuditoria(ServicioGenerico[Auditoria]):
+    """Reglas de negocio de los registros de auditoría."""
+
+    def registrar(self, accion: str, detalles: str) -> Auditoria:
+        """Crea un registro de auditoría con la fecha actual."""
+        return self.crear(Auditoria(id=0, accion=accion,
+                                    fecha=datetime.now(),
+                                    detalles=detalles))
+
+    def _validar(self, entidad: Auditoria) -> None:
+        """La acción registrada no puede estar vacía."""
+        if not entidad.accion.strip():
+            raise ValueError('La acción de auditoría no puede estar vacía')
+
+
 CAMPOS_ALERTA: List[str] = [
     'libro_id', 'libro', 'precio_interno', 'precio_web', 'diferencia',
     'umbral', 'situacion', 'criterio', 'titulo_web', 'url',
@@ -361,8 +376,15 @@ class ServicioAlertasPrecio:
 
     def __init__(self, repo_precios: IRepositorio[Precio],
                  carpeta_reportes: Path) -> None:
+        """Inicializa el servicio de alertas de precio.
+
+        Args:
+            repo_precios: Repositorio para acceder a los precios históricos.
+            carpeta_reportes: Ruta a la carpeta donde se guardarán los reportes.
+        """
         self.__repo_precios: IRepositorio[Precio] = repo_precios
         self.__carpeta_reportes: Path = Path(carpeta_reportes)
+        self.sin_coincidencia: List[str] = []
 
     @staticmethod
     def validar_diferencia(valor: Any) -> Decimal:
@@ -452,7 +474,7 @@ class ServicioAlertasPrecio:
             List[Dict[str, Any]]: Una alerta por cada libro que supera
             la diferencia.
         """
-        self.sin_coincidencia: List[str] = []
+        self.sin_coincidencia = []
         por_libro: Dict[int, List[Dict[str, Any]]] = {}
         for resultado in resultados:
             por_libro.setdefault(resultado.get('libro_id'), []).append(
@@ -525,109 +547,12 @@ class ServicioReportePrecios:
     def __init__(self, repo_libros: IRepositorio[Libro],
                  servicio_alertas: ServicioAlertasPrecio,
                  carpeta_reportes: Path = CARPETA_REPORTES) -> None:
+        """Inicializa el generador de reportes de precios en Excel.
+
+        Args:
+            repo_libros: Repositorio para acceder a los datos de los libros.
+            servicio_alertas: Instancia del servicio de alertas.
+            carpeta_reportes: Ruta de la carpeta de reportes (por defecto CARPETA_REPORTES).
+        """
         self.__repo_libros: IRepositorio[Libro] = repo_libros
-        self.__servicio_alertas: ServicioAlertasPrecio = servicio_alertas
-        self.__carpeta_reportes: Path = Path(carpeta_reportes)
-
-    def leer_resultados_scraper(self) -> List[Dict[str, Any]]:
-        """Lee los ítems guardados por la última ejecución del scraper.
-
-        Raises:
-            FileNotFoundError: Si todavía no se ejecutó el scraper.
-        """
-        ruta = self.__carpeta_reportes / 'resultados_cuspide.json'
-        if not ruta.exists():
-            raise FileNotFoundError(
-                'No hay resultados del scraper. Ejecute primero el '
-                'scraping de Cúspide.')
-        with open(ruta, encoding='utf-8') as archivo:
-            return json.load(archivo)
-
-    def generar_filas(self, resultados: List[Dict[str, Any]]
-                      ) -> List[Dict[str, Any]]:
-        """Arma una fila del reporte por cada libro del catálogo.
-
-        Si el libro no tiene un resultado web con el mismo título, la fila
-        queda sin precio web ni diferencia.
-        """
-        precios_internos = self.__servicio_alertas.precios_internos_ars()
-        por_libro: Dict[int, List[Dict[str, Any]]] = {}
-        for resultado in resultados:
-            por_libro.setdefault(resultado.get('libro_id'), []).append(
-                resultado)
-
-        filas: List[Dict[str, Any]] = []
-        libros = sorted(self.__repo_libros.leer_todos(),
-                        key=lambda libro: libro.id)
-        for libro in libros:
-            interno = precios_internos.get(libro.id)
-            elegido, criterio = self.__servicio_alertas.elegir_resultado(
-                libro.titulo, por_libro.get(libro.id, []))
-            web = None
-            fecha = None
-            if elegido is not None and elegido.get('precio') is not None:
-                web = Decimal(str(elegido['precio']))
-                fecha = elegido.get('fecha_extraccion')
-            diferencia = (web - interno
-                          if web is not None and interno is not None
-                          else None)
-            filas.append({
-                'libro': libro.titulo,
-                'precio_interno': interno,
-                'precio_web': web,
-                'diferencia': diferencia,
-                'fecha_extraccion': (datetime.fromisoformat(fecha)
-                                     if fecha else None),
-                'coincidencia': criterio,
-            })
-        return filas
-
-    def exportar_excel(self, filas: List[Dict[str, Any]]) -> Path:
-        """Escribe las filas en un archivo .xlsx nuevo dentro de reportes/.
-
-        Returns:
-            Path: Ruta del archivo generado.
-        """
-        libro_excel = Workbook()
-        hoja = libro_excel.active
-        hoja.title = 'Precios'
-        hoja.append([nombre for nombre, _ in COLUMNAS_REPORTE])
-        relleno = PatternFill('solid', fgColor='D9E2F3')
-        for indice, (_, ancho) in enumerate(COLUMNAS_REPORTE, start=1):
-            celda = hoja.cell(row=1, column=indice)
-            celda.font = Font(bold=True)
-            celda.fill = relleno
-            letra = celda.column_letter
-            hoja.column_dimensions[letra].width = ancho
-
-        for fila in filas:
-            hoja.append([
-                fila['libro'],
-                fila['precio_interno'],
-                fila['precio_web'],
-                fila['diferencia'],
-                fila['fecha_extraccion'],
-                fila['coincidencia'],
-            ])
-
-        for numero in range(2, hoja.max_row + 1):
-            for columna in ('B', 'C', 'D'):
-                hoja[f'{columna}{numero}'].number_format = '"$" #,##0.00'
-            hoja[f'E{numero}'].number_format = 'dd/mm/yyyy hh:mm'
-        hoja.freeze_panes = 'A2'
-        hoja.auto_filter.ref = hoja.dimensions
-
-        self.__carpeta_reportes.mkdir(parents=True, exist_ok=True)
-        marca = datetime.now().strftime('%Y-%m-%d_%H%M%S')
-        ruta = self.__carpeta_reportes / f'reporte_precios_{marca}.xlsx'
-        libro_excel.save(ruta)
-        return ruta
-
-    def generar_reporte(self) -> Path:
-        """Genera el reporte Excel con los últimos resultados del scraper.
-
-        Returns:
-            Path: Ruta del archivo .xlsx generado.
-        """
-        filas = self.generar_filas(self.leer_resultados_scraper())
-        return self.exportar_excel(filas)
+        self.__servicio_alertas: ServicioAlertas

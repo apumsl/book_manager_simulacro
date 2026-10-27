@@ -13,3 +13,6 @@ src/book_manager/reportes/*
 
 # Caché de Scrapy
 .scrapy/
+
+# Scripts locales de prueba
+cargar_supabase.py

@@ -2,16 +2,18 @@
 import abc
 import datetime
 from typing import TypeVar, Generic, List, Optional, Type
+from book_manager.database.decorators import auditar
 
 from sqlalchemy.orm import Query, Session, joinedload
 
 from book_manager.entities.entities import (
-    CotizacionDolar, Editorial, EntidadBase, Genero, Libro, Moneda, Precio,
-    Stock, TipoCotizacion
+    Auditoria, CotizacionDolar, Editorial, EntidadBase, Genero, Libro,
+    Moneda, Precio, Stock, TipoCotizacion
 )
 from book_manager.models.models import (
-    GeneroModelo, EditorialModelo, MonedaModelo, TipoCotizacionModelo,
-    LibroModelo, PrecioModelo, StockModelo, CotizacionDolarModelo
+    AuditoriaModel, GeneroModel, EditorialModel, MonedaModel,
+    TipoCotizacionModel, LibroModel, PrecioModel, StockModel,
+    CotizacionDolarModel
 )
 from book_manager.database.connection import ConexionDB
 
@@ -126,54 +128,102 @@ class RepositorioGenericoDB(IRepositorio[T], Generic[T, M]):
             return False
 
 
-class RepositorioGenero(RepositorioGenericoDB[Genero, GeneroModelo]):
+class RepositorioGenero(RepositorioGenericoDB[Genero, GeneroModel]):
     def __init__(self, conexion: ConexionDB) -> None:
-        super().__init__(conexion, GeneroModelo)
+        super().__init__(conexion, GeneroModel)
 
-    def _a_entidad(self, modelo: GeneroModelo) -> Genero:
+    def _a_entidad(self, modelo: GeneroModel) -> Genero:
         return Genero(id=modelo.id, nombre=modelo.nombre)
 
     def _a_modelo_kwargs(self, entidad: Genero) -> dict:
         return {'nombre': entidad.nombre}
 
+    @auditar(accion="CREAR_GENERO")
+    def crear(self, entidad: Genero) -> Genero:
+        return super().crear(entidad)
 
-class RepositorioEditorial(RepositorioGenericoDB[Editorial, EditorialModelo]):
+    @auditar(accion="ACTUALIZAR_GENERO")
+    def actualizar(self, entidad: Genero) -> Genero:
+        return super().actualizar(entidad)
+
+    @auditar(accion="ELIMINAR_GENERO")
+    def eliminar(self, id: int) -> bool:
+        return super().eliminar(id)
+
+
+class RepositorioEditorial(RepositorioGenericoDB[Editorial, EditorialModel]):
     def __init__(self, conexion: ConexionDB) -> None:
-        super().__init__(conexion, EditorialModelo)
+        super().__init__(conexion, EditorialModel)
 
-    def _a_entidad(self, modelo: EditorialModelo) -> Editorial:
+    def _a_entidad(self, modelo: EditorialModel) -> Editorial:
         return Editorial(id=modelo.id, nombre=modelo.nombre, sede=modelo.sede)
 
     def _a_modelo_kwargs(self, entidad: Editorial) -> dict:
         return {'nombre': entidad.nombre, 'sede': entidad.sede}
 
+    @auditar(accion="CREAR_EDITORIAL")
+    def crear(self, entidad: Editorial) -> Editorial:
+        return super().crear(entidad)
 
-class RepositorioMoneda(RepositorioGenericoDB[Moneda, MonedaModelo]):
+    @auditar(accion="ACTUALIZAR_EDITORIAL")
+    def actualizar(self, entidad: Editorial) -> Editorial:
+        return super().actualizar(entidad)
+
+    @auditar(accion="ELIMINAR_EDITORIAL")
+    def eliminar(self, id: int) -> bool:
+        return super().eliminar(id)
+
+
+class RepositorioMoneda(RepositorioGenericoDB[Moneda, MonedaModel]):
     def __init__(self, conexion: ConexionDB) -> None:
-        super().__init__(conexion, MonedaModelo)
+        super().__init__(conexion, MonedaModel)
 
-    def _a_entidad(self, modelo: MonedaModelo) -> Moneda:
+    def _a_entidad(self, modelo: MonedaModel) -> Moneda:
         return Moneda(id=modelo.id, codigo=modelo.codigo, nombre=modelo.nombre)
 
     def _a_modelo_kwargs(self, entidad: Moneda) -> dict:
         return {'codigo': entidad.codigo, 'nombre': entidad.nombre}
 
+    @auditar(accion="CREAR_MONEDA")
+    def crear(self, entidad: Moneda) -> Moneda:
+        return super().crear(entidad)
+
+    @auditar(accion="ACTUALIZAR_MONEDA")
+    def actualizar(self, entidad: Moneda) -> Moneda:
+        return super().actualizar(entidad)
+
+    @auditar(accion="ELIMINAR_MONEDA")
+    def eliminar(self, id: int) -> bool:
+        return super().eliminar(id)
+
 
 class RepositorioTipoCotizacion(
-        RepositorioGenericoDB[TipoCotizacion, TipoCotizacionModelo]):
+        RepositorioGenericoDB[TipoCotizacion, TipoCotizacionModel]):
     def __init__(self, conexion: ConexionDB) -> None:
-        super().__init__(conexion, TipoCotizacionModelo)
+        super().__init__(conexion, TipoCotizacionModel)
 
-    def _a_entidad(self, modelo: TipoCotizacionModelo) -> TipoCotizacion:
+    def _a_entidad(self, modelo: TipoCotizacionModel) -> TipoCotizacion:
         return TipoCotizacion(id=modelo.id, nombre=modelo.nombre)
 
     def _a_modelo_kwargs(self, entidad: TipoCotizacion) -> dict:
         return {'nombre': entidad.nombre}
 
+    @auditar(accion="CREAR_TIPO_COTIZACION")
+    def crear(self, entidad: TipoCotizacion) -> TipoCotizacion:
+        return super().crear(entidad)
 
-class RepositorioLibro(RepositorioGenericoDB[Libro, LibroModelo]):
+    @auditar(accion="ACTUALIZAR_TIPO_COTIZACION")
+    def actualizar(self, entidad: TipoCotizacion) -> TipoCotizacion:
+        return super().actualizar(entidad)
+
+    @auditar(accion="ELIMINAR_TIPO_COTIZACION")
+    def eliminar(self, id: int) -> bool:
+        return super().eliminar(id)
+
+
+class RepositorioLibro(RepositorioGenericoDB[Libro, LibroModel]):
     def __init__(self, conexion: ConexionDB) -> None:
-        super().__init__(conexion, LibroModelo)
+        super().__init__(conexion, LibroModel)
 
     def _query_base(self, sesion: Session) -> Query:
         return sesion.query(self.modelo).options(
@@ -181,7 +231,7 @@ class RepositorioLibro(RepositorioGenericoDB[Libro, LibroModelo]):
             joinedload(self.modelo.editorial)
         )
 
-    def _a_entidad(self, modelo: LibroModelo) -> Libro:
+    def _a_entidad(self, modelo: LibroModel) -> Libro:
         genero = Genero(id=modelo.genero.id, nombre=modelo.genero.nombre)
         editorial = Editorial(
             id=modelo.editorial.id, nombre=modelo.editorial.nombre,
@@ -197,19 +247,31 @@ class RepositorioLibro(RepositorioGenericoDB[Libro, LibroModelo]):
             'editorial_id': entidad.editorial.id
         }
 
+    @auditar(accion="CREAR_LIBRO")
+    def crear(self, entidad: Libro) -> Libro:
+        return super().crear(entidad)
 
-class RepositorioPrecio(RepositorioGenericoDB[Precio, PrecioModelo]):
+    @auditar(accion="ACTUALIZAR_LIBRO")
+    def actualizar(self, entidad: Libro) -> Libro:
+        return super().actualizar(entidad)
+
+    @auditar(accion="ELIMINAR_LIBRO")
+    def eliminar(self, id: int) -> bool:
+        return super().eliminar(id)
+
+
+class RepositorioPrecio(RepositorioGenericoDB[Precio, PrecioModel]):
     def __init__(self, conexion: ConexionDB) -> None:
-        super().__init__(conexion, PrecioModelo)
+        super().__init__(conexion, PrecioModel)
 
     def _query_base(self, sesion: Session) -> Query:
         return sesion.query(self.modelo).options(
-            joinedload(self.modelo.libro).joinedload(LibroModelo.genero),
-            joinedload(self.modelo.libro).joinedload(LibroModelo.editorial),
+            joinedload(self.modelo.libro).joinedload(LibroModel.genero),
+            joinedload(self.modelo.libro).joinedload(LibroModel.editorial),
             joinedload(self.modelo.moneda)
         )
 
-    def _a_entidad(self, modelo: PrecioModelo) -> Precio:
+    def _a_entidad(self, modelo: PrecioModel) -> Precio:
         genero = Genero(id=modelo.libro.genero.id,
                         nombre=modelo.libro.genero.nombre)
         editorial = Editorial(id=modelo.libro.editorial.id,
@@ -230,6 +292,18 @@ class RepositorioPrecio(RepositorioGenericoDB[Precio, PrecioModelo]):
             'libro_id': entidad.libro.id, 'moneda_id': entidad.moneda.id,
             'monto': entidad.monto, 'fecha_vigencia': entidad.fecha_vigencia
         }
+
+    @auditar(accion="CREAR_PRECIO")
+    def crear(self, entidad: Precio) -> Precio:
+        return super().crear(entidad)
+
+    @auditar(accion="ACTUALIZAR_PRECIO")
+    def actualizar(self, entidad: Precio) -> Precio:
+        return super().actualizar(entidad)
+
+    @auditar(accion="ELIMINAR_PRECIO")
+    def eliminar(self, id: int) -> bool:
+        return super().eliminar(id)
 
 
 class IRepositorioStock(abc.ABC):
@@ -255,12 +329,12 @@ class RepositorioStock(IRepositorioStock):
         self.conexion = conexion
 
     def _query_base(self, sesion: Session) -> Query:
-        return sesion.query(StockModelo).options(
-            joinedload(StockModelo.libro).joinedload(LibroModelo.genero),
-            joinedload(StockModelo.libro).joinedload(LibroModelo.editorial)
+        return sesion.query(StockModel).options(
+            joinedload(StockModel.libro).joinedload(LibroModel.genero),
+            joinedload(StockModel.libro).joinedload(LibroModel.editorial)
         )
 
-    def _a_entidad(self, modelo: StockModelo) -> Stock:
+    def _a_entidad(self, modelo: StockModel) -> Stock:
         genero = Genero(id=modelo.libro.genero.id,
                         nombre=modelo.libro.genero.nombre)
         editorial = Editorial(id=modelo.libro.editorial.id,
@@ -271,13 +345,14 @@ class RepositorioStock(IRepositorioStock):
                       genero=genero, editorial=editorial)
         return Stock(id=modelo.id, libro=libro, cantidad=modelo.cantidad)
 
+    @auditar(accion="CREAR_STOCK")
     def crear(self, stock: Stock) -> Stock:
         with self.conexion.transaccion() as sesion:
-            if sesion.query(StockModelo).filter_by(
+            if sesion.query(StockModel).filter_by(
                     libro_id=stock.libro.id).first():
                 raise ValueError(
                     f"Ya existe stock para el libro {stock.libro.id}")
-            nuevo = StockModelo(libro_id=stock.libro.id,
+            nuevo = StockModel(libro_id=stock.libro.id,
                                 cantidad=stock.cantidad)
             if getattr(stock, 'id', None):
                 nuevo.id = stock.id
@@ -295,9 +370,10 @@ class RepositorioStock(IRepositorioStock):
                 libro_id=libro_id).first()
             return self._a_entidad(modelo) if modelo else None
 
+    @auditar(accion="ACTUALIZAR_STOCK")
     def actualizar(self, stock: Stock) -> Stock:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(StockModelo).filter_by(
+            modelo = sesion.query(StockModel).filter_by(
                 libro_id=stock.libro.id).first()
             if not modelo:
                 raise ValueError(
@@ -310,9 +386,10 @@ class RepositorioStock(IRepositorioStock):
             return self._a_entidad(self._query_base(sesion).filter_by(
                 libro_id=stock.libro.id).one())
 
+    @auditar(accion="ELIMINAR_STOCK")
     def eliminar(self, libro_id: int) -> bool:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(StockModelo).filter_by(
+            modelo = sesion.query(StockModel).filter_by(
                 libro_id=libro_id).first()
             if modelo:
                 sesion.delete(modelo)
@@ -349,10 +426,10 @@ class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
         self.conexion = conexion
 
     def _query_base(self, sesion: Session) -> Query:
-        return sesion.query(CotizacionDolarModelo).options(
-            joinedload(CotizacionDolarModelo.tipo_cotizacion))
+        return sesion.query(CotizacionDolarModel).options(
+            joinedload(CotizacionDolarModel.tipo_cotizacion))
 
-    def _a_entidad(self, modelo: CotizacionDolarModelo) -> CotizacionDolar:
+    def _a_entidad(self, modelo: CotizacionDolarModel) -> CotizacionDolar:
         tipo = TipoCotizacion(id=modelo.tipo_cotizacion.id,
                               nombre=modelo.tipo_cotizacion.nombre)
         return CotizacionDolar(
@@ -361,14 +438,15 @@ class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
             valor_venta=float(modelo.valor_venta)
         )
 
+    @auditar(accion="CREAR_COTIZACION")
     def crear(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
         with self.conexion.transaccion() as sesion:
-            if sesion.query(CotizacionDolarModelo).filter_by(
+            if sesion.query(CotizacionDolarModel).filter_by(
                     tipo_cotizacion_id=cotizacion.tipo_cotizacion.id,
                     fecha=cotizacion.fecha).first():
                 raise ValueError(
                     "Ya existe una cotización para ese tipo de dolar y fecha")
-            nuevo = CotizacionDolarModelo(
+            nuevo = CotizacionDolarModel(
                 tipo_cotizacion_id=cotizacion.tipo_cotizacion.id,
                 fecha=cotizacion.fecha,
                 valor_compra=cotizacion.valor_compra,
@@ -398,9 +476,10 @@ class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
                 tipo_cotizacion_id=tipo_id).all()
             return [self._a_entidad(m) for m in modelos]
 
+    @auditar(accion="ACTUALIZAR_COTIZACION")
     def actualizar(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(CotizacionDolarModelo).filter_by(
+            modelo = sesion.query(CotizacionDolarModel).filter_by(
                 tipo_cotizacion_id=cotizacion.tipo_cotizacion.id,
                 fecha=cotizacion.fecha).first()
             if not modelo:
@@ -416,11 +495,44 @@ class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
                 tipo_cotizacion_id=cotizacion.tipo_cotizacion.id,
                 fecha=cotizacion.fecha).one())
 
+    @auditar(accion="ELIMINAR_COTIZACION")
     def eliminar(self, tipo_id: int, fecha: datetime.date) -> bool:
         with self.conexion.transaccion() as sesion:
-            modelo = sesion.query(CotizacionDolarModelo).filter_by(
+            modelo = sesion.query(CotizacionDolarModel).filter_by(
                 tipo_cotizacion_id=tipo_id, fecha=fecha).first()
             if modelo:
                 sesion.delete(modelo)
                 return True
             return False
+
+
+class RepositorioAuditoria(
+        RepositorioGenericoDB[Auditoria, AuditoriaModel]):
+    """Persistencia de los registros de auditoría.
+
+    No lleva el decorador auditar, para no generar registros en cadena.
+    """
+
+    def __init__(self, conexion: ConexionDB) -> None:
+        """Inicializa el repositorio con la conexión a la base."""
+        super().__init__(conexion, AuditoriaModel)
+
+    def _a_entidad(self, modelo: AuditoriaModel) -> Auditoria:
+        """Convierte un registro de la tabla en una entidad."""
+        return Auditoria(id=modelo.id, accion=modelo.accion,
+                         fecha=modelo.fecha, detalles=modelo.detalles)
+
+    def _a_modelo_kwargs(self, entidad: Auditoria) -> dict:
+        """Convierte una entidad en los campos del modelo.
+
+        Si la entidad no trae fecha, la completa la base con la actual.
+        """
+        campos = {'accion': entidad.accion, 'detalles': entidad.detalles}
+        if entidad.fecha is not None:
+            campos['fecha'] = entidad.fecha
+        return campos
+
+    def _query_base(self, sesion: Session) -> Query:
+        """Ordena los registros del más reciente al más antiguo."""
+        return sesion.query(AuditoriaModel).order_by(
+            AuditoriaModel.fecha.desc())

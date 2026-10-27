@@ -6,6 +6,7 @@ definen con claves foráneas (ForeignKey) y se navegan con relationship().
 import datetime
 from decimal import Decimal
 from typing import List
+from sqlalchemy import Column, Integer, String, DateTime, Text
 
 from sqlalchemy import (CheckConstraint, Date, ForeignKey, Integer, Numeric,
                         String, UniqueConstraint)
@@ -19,7 +20,7 @@ class Base(DeclarativeBase):
     """Clase base de la que heredan todos los modelos."""
 
 
-class GeneroModelo(Base):
+class GeneroModel(Base):
     """Tabla de géneros literarios."""
 
     __tablename__ = 'generos'
@@ -27,11 +28,11 @@ class GeneroModelo(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100), unique=True)
 
-    libros: Mapped[List['LibroModelo']] = relationship(
+    libros: Mapped[List['LibroModel']] = relationship(
         back_populates='genero')
 
 
-class EditorialModelo(Base):
+class EditorialModel(Base):
     """Tabla de editoriales."""
 
     __tablename__ = 'editoriales'
@@ -40,11 +41,11 @@ class EditorialModelo(Base):
     nombre: Mapped[str] = mapped_column(String(150), unique=True)
     sede: Mapped[str] = mapped_column(String(150))
 
-    libros: Mapped[List['LibroModelo']] = relationship(
+    libros: Mapped[List['LibroModel']] = relationship(
         back_populates='editorial')
 
 
-class MonedaModelo(Base):
+class MonedaModel(Base):
     """Tabla de monedas (ARS, USD, etc.)."""
 
     __tablename__ = 'monedas'
@@ -53,11 +54,11 @@ class MonedaModelo(Base):
     codigo: Mapped[str] = mapped_column(String(3), unique=True)
     nombre: Mapped[str] = mapped_column(String(100))
 
-    precios: Mapped[List['PrecioModelo']] = relationship(
+    precios: Mapped[List['PrecioModel']] = relationship(
         back_populates='moneda')
 
 
-class TipoCotizacionModelo(Base):
+class TipoCotizacionModel(Base):
     """Tabla de tipos de cotización del dólar (Oficial, Blue, MEP, etc.)."""
 
     __tablename__ = 'tipos_cotizacion'
@@ -65,11 +66,11 @@ class TipoCotizacionModelo(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nombre: Mapped[str] = mapped_column(String(50), unique=True)
 
-    cotizaciones: Mapped[List['CotizacionDolarModelo']] = relationship(
+    cotizaciones: Mapped[List['CotizacionDolarModel']] = relationship(
         back_populates='tipo_cotizacion')
 
 
-class LibroModelo(Base):
+class LibroModel(Base):
     """Tabla de libros; cada libro pertenece a un género y una editorial."""
 
     __tablename__ = 'libros'
@@ -81,15 +82,15 @@ class LibroModelo(Base):
     genero_id: Mapped[int] = mapped_column(ForeignKey('generos.id'))
     editorial_id: Mapped[int] = mapped_column(ForeignKey('editoriales.id'))
 
-    genero: Mapped[GeneroModelo] = relationship(back_populates='libros')
-    editorial: Mapped[EditorialModelo] = relationship(
+    genero: Mapped[GeneroModel] = relationship(back_populates='libros')
+    editorial: Mapped[EditorialModel] = relationship(
         back_populates='libros')
-    precios: Mapped[List['PrecioModelo']] = relationship(
+    precios: Mapped[List['PrecioModel']] = relationship(
         back_populates='libro')
-    stock: Mapped['StockModelo'] = relationship(back_populates='libro')
+    stock: Mapped['StockModel'] = relationship(back_populates='libro')
 
 
-class PrecioModelo(Base):
+class PrecioModel(Base):
     """Tabla de precios de un libro en una moneda, desde una fecha."""
 
     __tablename__ = 'precios'
@@ -103,11 +104,11 @@ class PrecioModelo(Base):
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     fecha_vigencia: Mapped[datetime.date] = mapped_column(Date)
 
-    libro: Mapped[LibroModelo] = relationship(back_populates='precios')
-    moneda: Mapped[MonedaModelo] = relationship(back_populates='precios')
+    libro: Mapped[LibroModel] = relationship(back_populates='precios')
+    moneda: Mapped[MonedaModel] = relationship(back_populates='precios')
 
 
-class StockModelo(Base):
+class StockModel(Base):
     """Tabla de stock; hay un único registro de stock por libro."""
 
     __tablename__ = 'stock'
@@ -120,10 +121,10 @@ class StockModelo(Base):
                                           unique=True)
     cantidad: Mapped[int] = mapped_column(Integer)
 
-    libro: Mapped[LibroModelo] = relationship(back_populates='stock')
+    libro: Mapped[LibroModel] = relationship(back_populates='stock')
 
 
-class CotizacionDolarModelo(Base):
+class CotizacionDolarModel(Base):
     """Tabla de cotizaciones del dólar; una por tipo y fecha."""
 
     __tablename__ = 'cotizaciones_dolar'
@@ -143,9 +144,17 @@ class CotizacionDolarModelo(Base):
     valor_compra: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     valor_venta: Mapped[Decimal] = mapped_column(Numeric(12, 2))
 
-    tipo_cotizacion: Mapped[TipoCotizacionModelo] = relationship(
+    tipo_cotizacion: Mapped[TipoCotizacionModel] = relationship(
         back_populates='cotizaciones')
 
+class AuditoriaModel(Base):
+    """Modelo para registrar las operaciones del sistema."""
+    __tablename__ = 'auditoria'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    accion = Column(String(255), nullable=False)
+    fecha = Column(DateTime, default=datetime.datetime.now, nullable=False)
+    detalles = Column(Text, nullable=False)
 
 def crear_tablas(conexion: ConexionDB) -> None:
     """Crea en la base de datos todas las tablas que todavía no existen.

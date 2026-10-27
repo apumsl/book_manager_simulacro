@@ -1,5 +1,14 @@
 # Changelog
 
+## [Ejercicio 6]
+- Se implementa la clase `Auditoria` en `models.py` heredando de `Base` para mapear las columnas `id`, `accion`, `fecha` y `detalles`.
+- Se crea el decorador `@auditar` en `decorators.py` para registrar las operaciones de escritura. Incluye manejo de excepciones (`try/except`) y abre su propia sesión a la base de datos para garantizar que los fallos de auditoría no interrumpan la operación principal del usuario.
+- Se aplica el decorador `@auditar` en `repositories.py` exclusivamente sobre los métodos que modifican datos (`crear`, `actualizar`, `eliminar`), asignando etiquetas de acción descriptivas (ej. `"CREAR_GENERO"`).
+- Se inicializa la variable `self.sin_coincidencia` como lista vacía dentro del `__init__` de `ServicioAlertasPrecio` para prevenir errores de tipo `AttributeError`.
+- Se crea la entidad `Auditoria` con su CRUD completo: `RepositorioAuditoria` (hereda de `RepositorioGenericoDB`, ordena del registro más reciente al más antiguo) y `ServicioAuditoria` (hereda de `ServicioGenerico`).
+- Se renombran los modelos de `...Modelo` a `...Model` (y `Auditoria` a `AuditoriaModel`) para coincidir con los nombres que exige la validación del notebook.
+- El decorador `auditar` se documenta con type hints, usa `conexion.transaccion()` y registra los detalles con nombres de atributos legibles.
+
 ## [Ejercicio 5]
 - Se crea `ServicioReportePrecios` en `services.py`, que genera un reporte Excel con los resultados de la última ejecución del scraper (`reportes/resultados_cuspide.json`).
 - El reporte tiene una fila por cada libro del catálogo con: libro, precio interno, precio web, diferencia (web − interno), fecha de extracción y el criterio de coincidencia usado.

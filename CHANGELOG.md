@@ -1,5 +1,8 @@
 # Changelog
 
+## [Corrección exportación de precios]
+- Se crea la carpeta `exports/` antes de exportar la lista de precios: como no se versiona, no existe en un clon nuevo y la exportación fallaba.
+
 #### [Ejercicio 7]
 - Se integraron al menú principal las opciones para ejecutar el scraping, generar el reporte Excel y consultar el historial de auditoría.
 - Se conectaron estas opciones con los servicios correspondientes del sistema.

@@ -915,10 +915,10 @@ class ConsolaUI:
                 base_dir = os.path.dirname(
                     os.path.dirname(os.path.abspath(__file__)))
 
+                carpeta_exports = os.path.join(base_dir, "exports")
+                os.makedirs(carpeta_exports, exist_ok=True)
                 nombre_archivo = os.path.join(
-                    base_dir, "exports", "precios_exportados.csv"
-
-                )
+                    carpeta_exports, "precios_exportados.csv")
 
                 with open(
                         nombre_archivo, 'w', newline='',
